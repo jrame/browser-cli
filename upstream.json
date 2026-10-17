@@ -1,0 +1,12 @@
+{
+  "cli": {
+    "repository": "https://github.com/microsoft/playwright-cli.git",
+    "commit": "b85c7a736bb473bf55b584e54a09ffa698d6d871",
+    "version": "0.1.22"
+  },
+  "playwright": {
+    "repository": "https://github.com/microsoft/playwright.git",
+    "commit": "e8149b8257d32dcf8f72573ecc43e72439da7080",
+    "version": "1.64.0-alpha-1790635538000"
+  }
+}

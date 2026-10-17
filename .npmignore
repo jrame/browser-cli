@@ -1,6 +1,11 @@
 **/*
 !README.md
 !LICENSE
-!playwright-cli.js
+!browser.js
 !skillCheck.js
 !skills/**
+!scripts/**
+!src/**
+!patches/**
+!upstream.json
+!NOTICE

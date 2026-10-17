@@ -18,17 +18,18 @@
 
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 function bundledSkillFile() {
-  const corePath = require.resolve('playwright-core/package.json');
-  return path.join(path.dirname(corePath), 'lib', 'tools', 'skills', 'playwright-cli', 'SKILL.md');
+  const corePath = require('./scripts/runtime.cjs').coreDirectory();
+  return path.join(corePath, 'lib', 'tools', 'skills', 'browser', 'SKILL.md');
 }
 
 function installedSkillTargets() {
   const cwd = process.cwd();
   return [
-    { dir: path.join(cwd, '.claude', 'skills', 'playwright-cli'), command: 'playwright-cli install --skills' },
-    { dir: path.join(cwd, '.agents', 'skills', 'playwright-cli'), command: 'playwright-cli install --skills=agents' },
+    { dir: path.join(cwd, '.claude', 'skills', 'browser'), command: 'browser install --skills' },
+    { dir: path.join(cwd, '.agents', 'skills', 'browser'), command: 'browser install --skills=agents' },
   ];
 }
 
@@ -58,19 +59,32 @@ function checkInstalledSkills() {
     const bundled = readSkill(bundledSkillFile());
     if (!bundled)
       return;
+    const cacheFile = path.join(process.cwd(), '.logs', 'browser-cli', 'skill-check.json');
+    let cache = {};
+    try { cache = JSON.parse(fs.readFileSync(cacheFile, 'utf8')); } catch {}
+    let changed = false;
     for (const target of installedSkillTargets()) {
       const installed = readSkill(path.join(target.dir, 'SKILL.md'));
       if (installed === null)
         continue;
       if (installed !== bundled) {
+        const fingerprint = crypto.createHash('sha256').update(bundled + '\0' + installed).digest('hex');
+        if (cache[target.dir] === fingerprint)
+          continue;
+        cache[target.dir] = fingerprint;
+        changed = true;
         process.stderr.write(frame([
-          `The playwright-cli skill at '${path.relative(process.cwd(), target.dir)}'`,
+          `The browser skill at '${path.relative(process.cwd(), target.dir)}'`,
           `does not match the tool version.`,
           ``,
           `Run \`${target.command}\``,
           `to install the up-to-date skill.`,
         ]));
       }
+    }
+    if (changed) {
+      fs.mkdirSync(path.dirname(cacheFile), { recursive: true });
+      fs.writeFileSync(cacheFile, JSON.stringify(cache));
     }
   } catch {
   }

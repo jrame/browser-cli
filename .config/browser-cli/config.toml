@@ -1,0 +1,13 @@
+# Optional navigation allowlist (restart the browser session after changing it).
+# Omit allowed_urls to allow all pages; [] blocks all HTTP(S) pages.
+# [navigation]
+# allowed_urls = ["https://example.com/**"]
+
+[atml]
+keep_attrs = []
+keep_tags = []
+remove_selectors = []
+
+[atml.rules.playwright-cli_introduction]
+url = "https://playwright.dev/agent-cli/introduction"
+remove_selectors = [".menu"]

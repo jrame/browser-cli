@@ -6,20 +6,20 @@ Capture detailed execution traces for debugging and analysis. Traces include DOM
 
 ```bash
 # Start trace recording
-playwright-cli tracing-start
+browser tracing-start
 
 # Perform actions
-playwright-cli open https://example.com
-playwright-cli click e1
-playwright-cli fill e2 "test"
+browser open https://example.com
+browser click :1
+browser fill :2 "test"
 
 # Stop trace recording
-playwright-cli tracing-stop
+browser tracing-stop
 ```
 
 ## Trace Output Files
 
-When you start tracing, Playwright creates a `.playwright-cli/traces/` directory with several files:
+When you start tracing, Playwright creates a `.logs/browser-cli/traces/` directory with several files:
 
 ### `trace-{timestamp}.trace`
 
@@ -64,22 +64,22 @@ When you start tracing, Playwright creates a `.playwright-cli/traces/` directory
 ### Debugging Failed Actions
 
 ```bash
-playwright-cli tracing-start
-playwright-cli open https://app.example.com
+browser tracing-start
+browser open https://app.example.com
 
 # This click fails - why?
-playwright-cli click e5
+browser click :5
 
-playwright-cli tracing-stop
+browser tracing-stop
 # Open trace to see DOM state when click was attempted
 ```
 
 ### Analyzing Performance
 
 ```bash
-playwright-cli tracing-start
-playwright-cli open https://slow-site.com
-playwright-cli tracing-stop
+browser tracing-start
+browser open https://slow-site.com
+browser tracing-stop
 
 # View network waterfall to identify slow resources
 ```
@@ -88,15 +88,15 @@ playwright-cli tracing-stop
 
 ```bash
 # Record a complete user flow for documentation
-playwright-cli tracing-start
+browser tracing-start
 
-playwright-cli open https://app.example.com/checkout
-playwright-cli fill e1 "4111111111111111"
-playwright-cli fill e2 "12/25"
-playwright-cli fill e3 "123"
-playwright-cli click e4
+browser open https://app.example.com/checkout
+browser fill :1 "4111111111111111"
+browser fill :2 "12/25"
+browser fill :3 "123"
+browser click :4
 
-playwright-cli tracing-stop
+browser tracing-stop
 # Trace shows exact sequence of events
 ```
 
@@ -117,10 +117,10 @@ playwright-cli tracing-stop
 
 ```bash
 # Trace the entire flow, not just the failing step
-playwright-cli tracing-start
-playwright-cli open https://example.com
+browser tracing-start
+browser open https://example.com
 # ... all steps leading to the issue ...
-playwright-cli tracing-stop
+browser tracing-stop
 ```
 
 ### 2. Clean Up Old Traces
@@ -129,7 +129,7 @@ Traces can consume significant disk space:
 
 ```bash
 # Remove traces older than 7 days
-find .playwright-cli/traces -mtime +7 -delete
+find .logs/browser-cli/traces -mtime +7 -delete
 ```
 
 ## Limitations

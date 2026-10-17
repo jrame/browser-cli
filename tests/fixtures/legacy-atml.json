@@ -1,0 +1,2728 @@
+{
+  "generator": "html_atml_generator.py",
+  "generatorSha256": "832327b231464e8228d7bfe531cfa23fb546999bb6a5576e28cd49f79486c93a",
+  "cases": [
+    {
+      "name": "test_monaco_span_merge-1",
+      "origin": "tests/unit/test_monaco_span_merge.py",
+      "html": "<body><div><span class=\"color-red\">Hello</span><span class=\"color-blue\"> </span><span class=\"color-green\">World</span></div></body>",
+      "config": {},
+      "browser": true,
+      "tree": {
+        "tag": "body",
+        "children": [
+          {
+            "tag": "div",
+            "children": [
+              {
+                "tag": "span",
+                "attrs": {
+                  "class": "color-red"
+                },
+                "children": [
+                  {
+                    "_text": "Hello"
+                  }
+                ]
+              },
+              {
+                "tag": "span",
+                "attrs": {
+                  "class": "color-blue"
+                },
+                "children": [
+                  {
+                    "_text": " "
+                  }
+                ]
+              },
+              {
+                "tag": "span",
+                "attrs": {
+                  "class": "color-green"
+                },
+                "children": [
+                  {
+                    "_text": "World"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "renderTree": {
+        "tag": "body",
+        "attrs": {},
+        "kept": false,
+        "classes": [],
+        "tooltip": false,
+        "showTag": false,
+        "children": [
+          {
+            "tag": "div",
+            "attrs": {},
+            "kept": false,
+            "classes": [],
+            "tooltip": false,
+            "showTag": false,
+            "children": [
+              {
+                "tag": "span",
+                "attrs": {},
+                "kept": false,
+                "classes": [],
+                "tooltip": false,
+                "showTag": false,
+                "children": [
+                  {
+                    "text": "Hello"
+                  }
+                ]
+              },
+              {
+                "tag": "span",
+                "attrs": {},
+                "kept": false,
+                "classes": [],
+                "tooltip": false,
+                "showTag": false,
+                "children": [
+                  {
+                    "text": " "
+                  }
+                ]
+              },
+              {
+                "tag": "span",
+                "attrs": {},
+                "kept": false,
+                "classes": [],
+                "tooltip": false,
+                "showTag": false,
+                "children": [
+                  {
+                    "text": "World"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "expected": "Hello World",
+      "browserExpected": "HelloWorld"
+    },
+    {
+      "name": "test_monaco_span_merge-2",
+      "origin": "tests/unit/test_monaco_span_merge.py",
+      "html": "<body><div><div>Line 1</div><div>Line 2</div><div>Line 3</div></div></body>",
+      "config": {},
+      "browser": true,
+      "tree": {
+        "tag": "body",
+        "children": [
+          {
+            "tag": "div",
+            "children": [
+              {
+                "tag": "div",
+                "children": [
+                  {
+                    "_text": "Line 1"
+                  }
+                ]
+              },
+              {
+                "tag": "div",
+                "children": [
+                  {
+                    "_text": "Line 2"
+                  }
+                ]
+              },
+              {
+                "tag": "div",
+                "children": [
+                  {
+                    "_text": "Line 3"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "renderTree": {
+        "tag": "body",
+        "attrs": {},
+        "kept": false,
+        "classes": [],
+        "tooltip": false,
+        "showTag": false,
+        "children": [
+          {
+            "tag": "div",
+            "attrs": {},
+            "kept": false,
+            "classes": [],
+            "tooltip": false,
+            "showTag": false,
+            "children": [
+              {
+                "tag": "div",
+                "attrs": {},
+                "kept": false,
+                "classes": [],
+                "tooltip": false,
+                "showTag": false,
+                "children": [
+                  {
+                    "text": "Line 1"
+                  }
+                ]
+              },
+              {
+                "tag": "div",
+                "attrs": {},
+                "kept": false,
+                "classes": [],
+                "tooltip": false,
+                "showTag": false,
+                "children": [
+                  {
+                    "text": "Line 2"
+                  }
+                ]
+              },
+              {
+                "tag": "div",
+                "attrs": {},
+                "kept": false,
+                "classes": [],
+                "tooltip": false,
+                "showTag": false,
+                "children": [
+                  {
+                    "text": "Line 3"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "expected": "Line 1\nLine 2\nLine 3",
+      "browserExpected": "Line 1\nLine 2\nLine 3"
+    },
+    {
+      "name": "test_monaco_span_merge-3",
+      "origin": "tests/unit/test_monaco_span_merge.py",
+      "html": "<body><div><span>Click</span><span>  </span><button>here</button><span> </span><span>please</span></div></body>",
+      "config": {},
+      "browser": true,
+      "tree": {
+        "tag": "body",
+        "children": [
+          {
+            "tag": "div",
+            "children": [
+              {
+                "tag": "span",
+                "children": [
+                  {
+                    "_text": "Click"
+                  }
+                ]
+              },
+              {
+                "tag": "span",
+                "children": [
+                  {
+                    "_text": "  "
+                  }
+                ]
+              },
+              {
+                "tag": "button",
+                "children": [
+                  {
+                    "_text": "here"
+                  }
+                ]
+              },
+              {
+                "tag": "span",
+                "children": [
+                  {
+                    "_text": " "
+                  }
+                ]
+              },
+              {
+                "tag": "span",
+                "children": [
+                  {
+                    "_text": "please"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "renderTree": {
+        "tag": "body",
+        "attrs": {},
+        "kept": false,
+        "classes": [],
+        "tooltip": false,
+        "showTag": false,
+        "children": [
+          {
+            "tag": "div",
+            "attrs": {},
+            "kept": false,
+            "classes": [],
+            "tooltip": false,
+            "showTag": false,
+            "children": [
+              {
+                "tag": "span",
+                "attrs": {},
+                "kept": false,
+                "classes": [],
+                "tooltip": false,
+                "showTag": false,
+                "children": [
+                  {
+                    "text": "Click"
+                  }
+                ]
+              },
+              {
+                "tag": "span",
+                "attrs": {},
+                "kept": false,
+                "classes": [],
+                "tooltip": false,
+                "showTag": false,
+                "children": [
+                  {
+                    "text": "  "
+                  }
+                ]
+              },
+              {
+                "tag": "button",
+                "attrs": {},
+                "kept": true,
+                "classes": [],
+                "tooltip": false,
+                "showTag": true,
+                "children": [
+                  {
+                    "text": "here"
+                  }
+                ]
+              },
+              {
+                "tag": "span",
+                "attrs": {},
+                "kept": false,
+                "classes": [],
+                "tooltip": false,
+                "showTag": false,
+                "children": [
+                  {
+                    "text": " "
+                  }
+                ]
+              },
+              {
+                "tag": "span",
+                "attrs": {},
+                "kept": false,
+                "classes": [],
+                "tooltip": false,
+                "showTag": false,
+                "children": [
+                  {
+                    "text": "please"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "expected": "Click \n  button\nhere\n  \nplease",
+      "browserExpected": "Click\n  button\nhere\n  \nplease"
+    },
+    {
+      "name": "test_monaco_span_merge-4",
+      "origin": "tests/unit/test_monaco_span_merge.py",
+      "html": "<body><div><div class=\"view-line\"><span><span class=\"mtk18\">import</span><span class=\"mtk1\"> </span><span class=\"mtk1 squiggly-inline-unnecessary\">sys</span></span></div><div class=\"view-line\"><span><span class=\"mtk18\">import</span><span class=\"mtk1\"> </span><span class=\"mtk1 squiggly-inline-unnecessary\">math</span></span></div></div></body>",
+      "config": {},
+      "browser": true,
+      "tree": {
+        "tag": "body",
+        "children": [
+          {
+            "tag": "div",
+            "children": [
+              {
+                "tag": "div",
+                "attrs": {
+                  "class": "view-line"
+                },
+                "children": [
+                  {
+                    "tag": "span",
+                    "children": [
+                      {
+                        "tag": "span",
+                        "attrs": {
+                          "class": "mtk18"
+                        },
+                        "children": [
+                          {
+                            "_text": "import"
+                          }
+                        ]
+                      },
+                      {
+                        "tag": "span",
+                        "attrs": {
+                          "class": "mtk1"
+                        },
+                        "children": [
+                          {
+                            "_text": " "
+                          }
+                        ]
+                      },
+                      {
+                        "tag": "span",
+                        "attrs": {
+                          "class": "mtk1 squiggly-inline-unnecessary"
+                        },
+                        "children": [
+                          {
+                            "_text": "sys"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "tag": "div",
+                "attrs": {
+                  "class": "view-line"
+                },
+                "children": [
+                  {
+                    "tag": "span",
+                    "children": [
+                      {
+                        "tag": "span",
+                        "attrs": {
+                          "class": "mtk18"
+                        },
+                        "children": [
+                          {
+                            "_text": "import"
+                          }
+                        ]
+                      },
+                      {
+                        "tag": "span",
+                        "attrs": {
+                          "class": "mtk1"
+                        },
+                        "children": [
+                          {
+                            "_text": " "
+                          }
+                        ]
+                      },
+                      {
+                        "tag": "span",
+                        "attrs": {
+                          "class": "mtk1 squiggly-inline-unnecessary"
+                        },
+                        "children": [
+                          {
+                            "_text": "math"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "renderTree": {
+        "tag": "body",
+        "attrs": {},
+        "kept": false,
+        "classes": [],
+        "tooltip": false,
+        "showTag": false,
+        "children": [
+          {
+            "tag": "div",
+            "attrs": {},
+            "kept": false,
+            "classes": [],
+            "tooltip": false,
+            "showTag": false,
+            "children": [
+              {
+                "tag": "div",
+                "attrs": {},
+                "kept": false,
+                "classes": [],
+                "tooltip": false,
+                "showTag": false,
+                "children": [
+                  {
+                    "tag": "span",
+                    "attrs": {},
+                    "kept": false,
+                    "classes": [],
+                    "tooltip": false,
+                    "showTag": false,
+                    "children": [
+                      {
+                        "tag": "span",
+                        "attrs": {},
+                        "kept": false,
+                        "classes": [],
+                        "tooltip": false,
+                        "showTag": false,
+                        "children": [
+                          {
+                            "text": "import"
+                          }
+                        ]
+                      },
+                      {
+                        "tag": "span",
+                        "attrs": {},
+                        "kept": false,
+                        "classes": [],
+                        "tooltip": false,
+                        "showTag": false,
+                        "children": [
+                          {
+                            "text": " "
+                          }
+                        ]
+                      },
+                      {
+                        "tag": "span",
+                        "attrs": {},
+                        "kept": false,
+                        "classes": [],
+                        "tooltip": false,
+                        "showTag": false,
+                        "children": [
+                          {
+                            "text": "sys"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "tag": "div",
+                "attrs": {},
+                "kept": false,
+                "classes": [],
+                "tooltip": false,
+                "showTag": false,
+                "children": [
+                  {
+                    "tag": "span",
+                    "attrs": {},
+                    "kept": false,
+                    "classes": [],
+                    "tooltip": false,
+                    "showTag": false,
+                    "children": [
+                      {
+                        "tag": "span",
+                        "attrs": {},
+                        "kept": false,
+                        "classes": [],
+                        "tooltip": false,
+                        "showTag": false,
+                        "children": [
+                          {
+                            "text": "import"
+                          }
+                        ]
+                      },
+                      {
+                        "tag": "span",
+                        "attrs": {},
+                        "kept": false,
+                        "classes": [],
+                        "tooltip": false,
+                        "showTag": false,
+                        "children": [
+                          {
+                            "text": " "
+                          }
+                        ]
+                      },
+                      {
+                        "tag": "span",
+                        "attrs": {},
+                        "kept": false,
+                        "classes": [],
+                        "tooltip": false,
+                        "showTag": false,
+                        "children": [
+                          {
+                            "text": "math"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "expected": "import sys\nimport math",
+      "browserExpected": "importsys\nimportmath"
+    },
+    {
+      "name": "test_atml_steam-1",
+      "origin": "tests/unit/test_atml_steam.py",
+      "html": "<body><a class=\"search_result_row ds_collapse_flag\"><div class=\"search_capsule\"><img></div><div class=\"responsive_search_name_combined\"><div class=\"search_name\"><span class=\"title\">Kingdom Come: Deliverance II</span></div><div class=\"search_platforms\"><span class=\"platform_img win\"></span></div><div class=\"search_released\">4 Feb, 2025</div><div class=\"search_reviewscore\"><span class=\"search_review_summary positive\" title=\"Oracle tooltip\"></span></div><div class=\"search_price_discount_combined\"><div class=\"search_discount_and_price\"><div class=\"discount_block search_discount_block no_discount\"><div class=\"discount_prices\"><div class=\"discount_final_price\">59,99€</div></div></div></div></div></div></a></body>",
+      "config": {},
+      "browser": true,
+      "tree": {
+        "tag": "body",
+        "children": [
+          {
+            "tag": "a",
+            "attrs": {
+              "class": "search_result_row ds_collapse_flag"
+            },
+            "children": [
+              {
+                "tag": "div",
+                "attrs": {
+                  "class": "search_capsule"
+                },
+                "children": [
+                  {
+                    "tag": "img"
+                  }
+                ]
+              },
+              {
+                "tag": "div",
+                "attrs": {
+                  "class": "responsive_search_name_combined"
+                },
+                "children": [
+                  {
+                    "tag": "div",
+                    "attrs": {
+                      "class": "search_name"
+                    },
+                    "children": [
+                      {
+                        "tag": "span",
+                        "attrs": {
+                          "class": "title"
+                        },
+                        "children": [
+                          {
+                            "_text": "Kingdom Come: Deliverance II"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "tag": "div",
+                    "attrs": {
+                      "class": "search_platforms"
+                    },
+                    "children": [
+                      {
+                        "tag": "span",
+                        "attrs": {
+                          "class": "platform_img win"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "tag": "div",
+                    "attrs": {
+                      "class": "search_released"
+                    },
+                    "children": [
+                      {
+                        "_text": "4 Feb, 2025"
+                      }
+                    ]
+                  },
+                  {
+                    "tag": "div",
+                    "attrs": {
+                      "class": "search_reviewscore"
+                    },
+                    "children": [
+                      {
+                        "tag": "span",
+                        "attrs": {
+                          "class": "search_review_summary positive"
+                        },
+                        "_tooltip": true
+                      }
+                    ]
+                  },
+                  {
+                    "tag": "div",
+                    "attrs": {
+                      "class": "search_price_discount_combined"
+                    },
+                    "children": [
+                      {
+                        "tag": "div",
+                        "attrs": {
+                          "class": "search_discount_and_price"
+                        },
+                        "children": [
+                          {
+                            "tag": "div",
+                            "attrs": {
+                              "class": "discount_block search_discount_block no_discount"
+                            },
+                            "children": [
+                              {
+                                "tag": "div",
+                                "attrs": {
+                                  "class": "discount_prices"
+                                },
+                                "children": [
+                                  {
+                                    "tag": "div",
+                                    "attrs": {
+                                      "class": "discount_final_price"
+                                    },
+                                    "children": [
+                                      {
+                                        "_text": "59,99€"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "renderTree": {
+        "tag": "body",
+        "attrs": {},
+        "kept": false,
+        "classes": [],
+        "tooltip": false,
+        "showTag": false,
+        "children": [
+          {
+            "tag": "a",
+            "attrs": {},
+            "kept": true,
+            "classes": [],
+            "tooltip": false,
+            "showTag": true,
+            "children": [
+              {
+                "tag": "div",
+                "attrs": {},
+                "kept": false,
+                "classes": [],
+                "tooltip": false,
+                "showTag": false,
+                "children": [
+                  {
+                    "tag": "img",
+                    "attrs": {},
+                    "kept": true,
+                    "classes": [],
+                    "tooltip": false,
+                    "showTag": true,
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "tag": "div",
+                "attrs": {},
+                "kept": false,
+                "classes": [],
+                "tooltip": false,
+                "showTag": false,
+                "children": [
+                  {
+                    "tag": "div",
+                    "attrs": {},
+                    "kept": false,
+                    "classes": [],
+                    "tooltip": false,
+                    "showTag": false,
+                    "children": [
+                      {
+                        "tag": "span",
+                        "attrs": {},
+                        "kept": false,
+                        "classes": [],
+                        "tooltip": false,
+                        "showTag": false,
+                        "children": [
+                          {
+                            "text": "Kingdom Come: Deliverance II"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "tag": "div",
+                    "attrs": {},
+                    "kept": false,
+                    "classes": [],
+                    "tooltip": false,
+                    "showTag": false,
+                    "children": [
+                      {
+                        "tag": "span",
+                        "attrs": {},
+                        "kept": true,
+                        "classes": [
+                          "platform_img"
+                        ],
+                        "tooltip": false,
+                        "showTag": false,
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "tag": "div",
+                    "attrs": {},
+                    "kept": false,
+                    "classes": [],
+                    "tooltip": false,
+                    "showTag": false,
+                    "children": [
+                      {
+                        "text": "4 Feb, 2025"
+                      }
+                    ]
+                  },
+                  {
+                    "tag": "div",
+                    "attrs": {},
+                    "kept": false,
+                    "classes": [],
+                    "tooltip": false,
+                    "showTag": false,
+                    "children": [
+                      {
+                        "tag": "span",
+                        "attrs": {},
+                        "kept": true,
+                        "classes": [],
+                        "tooltip": true,
+                        "showTag": false,
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "tag": "div",
+                    "attrs": {},
+                    "kept": false,
+                    "classes": [],
+                    "tooltip": false,
+                    "showTag": false,
+                    "children": [
+                      {
+                        "tag": "div",
+                        "attrs": {},
+                        "kept": false,
+                        "classes": [],
+                        "tooltip": false,
+                        "showTag": false,
+                        "children": [
+                          {
+                            "tag": "div",
+                            "attrs": {},
+                            "kept": false,
+                            "classes": [],
+                            "tooltip": false,
+                            "showTag": false,
+                            "children": [
+                              {
+                                "tag": "div",
+                                "attrs": {},
+                                "kept": false,
+                                "classes": [],
+                                "tooltip": false,
+                                "showTag": false,
+                                "children": [
+                                  {
+                                    "tag": "div",
+                                    "attrs": {},
+                                    "kept": false,
+                                    "classes": [],
+                                    "tooltip": false,
+                                    "showTag": false,
+                                    "children": [
+                                      {
+                                        "text": "59,99€"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "expected": "  a\n    img\n    \nKingdom Come: Deliverance II\n    .platform_img\n    \n4 Feb, 2025\n    tooltip\n    \n59,99€",
+      "browserExpected": "  a\n    img\n    \nKingdom Come: Deliverance II\n    .platform_img\n    \n4 Feb, 2025\n    tooltip\n    \n59,99€"
+    },
+    {
+      "name": "test_atml_steam-2",
+      "origin": "tests/unit/test_atml_steam.py",
+      "html": "<body><div><a>Link text</a>After the link</div></body>",
+      "config": {},
+      "browser": true,
+      "tree": {
+        "tag": "body",
+        "children": [
+          {
+            "tag": "div",
+            "children": [
+              {
+                "tag": "a",
+                "children": [
+                  {
+                    "_text": "Link text"
+                  }
+                ]
+              },
+              {
+                "_text": "After the link"
+              }
+            ]
+          }
+        ]
+      },
+      "renderTree": {
+        "tag": "body",
+        "attrs": {},
+        "kept": false,
+        "classes": [],
+        "tooltip": false,
+        "showTag": false,
+        "children": [
+          {
+            "tag": "div",
+            "attrs": {},
+            "kept": false,
+            "classes": [],
+            "tooltip": false,
+            "showTag": false,
+            "children": [
+              {
+                "tag": "a",
+                "attrs": {},
+                "kept": true,
+                "classes": [],
+                "tooltip": false,
+                "showTag": true,
+                "children": [
+                  {
+                    "text": "Link text"
+                  }
+                ]
+              },
+              {
+                "text": "After the link"
+              }
+            ]
+          }
+        ]
+      },
+      "expected": "  a\nLink text\n  \nAfter the link",
+      "browserExpected": "  a\nLink text\n  \nAfter the link"
+    },
+    {
+      "name": "test_atml_steam-3",
+      "origin": "tests/unit/test_atml_steam.py",
+      "html": "<body><a class=\"search_result_row ds_collapse_flag \" data-has-listener=\"click\"><div class=\"search_capsule\"><img></div><div class=\"responsive_search_name_combined\"><div class=\"search_name ellipsis\"><span class=\"title\">Red Dead Redemption</span></div>\n\t\t\t\t<div class=\"search_platforms\"><span class=\"platform_img win\"></span></div>\n                <div class=\"search_released responsive_secondrow\">29 Oct, 2024</div>\n                <div class=\"search_reviewscore responsive_secondrow\"><span class=\"search_review_summary positive\" title=\"Oracle tooltip\"></span></div>\n\n\n                <div class=\"search_price_discount_combined responsive_secondrow\"><div class=\"search_discount_and_price responsive_secondrow\"><div class=\"discount_block search_discount_block no_discount\"><div class=\"discount_prices\"><div class=\"discount_final_price\">49,99€</div></div></div></div></div></div></a></body>",
+      "config": {},
+      "browser": true,
+      "tree": {
+        "tag": "body",
+        "children": [
+          {
+            "tag": "a",
+            "_listeners": "click",
+            "attrs": {
+              "class": "search_result_row ds_collapse_flag "
+            },
+            "children": [
+              {
+                "tag": "div",
+                "attrs": {
+                  "class": "search_capsule"
+                },
+                "children": [
+                  {
+                    "tag": "img"
+                  }
+                ]
+              },
+              {
+                "tag": "div",
+                "attrs": {
+                  "class": "responsive_search_name_combined"
+                },
+                "children": [
+                  {
+                    "tag": "div",
+                    "attrs": {
+                      "class": "search_name ellipsis"
+                    },
+                    "children": [
+                      {
+                        "tag": "span",
+                        "attrs": {
+                          "class": "title"
+                        },
+                        "children": [
+                          {
+                            "_text": "Red Dead Redemption"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "_text": "\n\t\t\t\t"
+                  },
+                  {
+                    "tag": "div",
+                    "attrs": {
+                      "class": "search_platforms"
+                    },
+                    "children": [
+                      {
+                        "tag": "span",
+                        "attrs": {
+                          "class": "platform_img win"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "_text": "\n                "
+                  },
+                  {
+                    "tag": "div",
+                    "attrs": {
+                      "class": "search_released responsive_secondrow"
+                    },
+                    "children": [
+                      {
+                        "_text": "29 Oct, 2024"
+                      }
+                    ]
+                  },
+                  {
+                    "_text": "\n                "
+                  },
+                  {
+                    "tag": "div",
+                    "attrs": {
+                      "class": "search_reviewscore responsive_secondrow"
+                    },
+                    "children": [
+                      {
+                        "tag": "span",
+                        "_tooltip": true,
+                        "attrs": {
+                          "class": "search_review_summary positive"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "_text": "\n\n\n                "
+                  },
+                  {
+                    "tag": "div",
+                    "attrs": {
+                      "class": "search_price_discount_combined responsive_secondrow"
+                    },
+                    "children": [
+                      {
+                        "tag": "div",
+                        "attrs": {
+                          "class": "search_discount_and_price responsive_secondrow"
+                        },
+                        "children": [
+                          {
+                            "tag": "div",
+                            "attrs": {
+                              "class": "discount_block search_discount_block no_discount"
+                            },
+                            "children": [
+                              {
+                                "tag": "div",
+                                "attrs": {
+                                  "class": "discount_prices"
+                                },
+                                "children": [
+                                  {
+                                    "tag": "div",
+                                    "attrs": {
+                                      "class": "discount_final_price"
+                                    },
+                                    "children": [
+                                      {
+                                        "_text": "49,99€"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "renderTree": {
+        "tag": "body",
+        "attrs": {},
+        "kept": false,
+        "classes": [],
+        "tooltip": false,
+        "showTag": false,
+        "children": [
+          {
+            "tag": "a",
+            "attrs": {
+              "on": "click"
+            },
+            "kept": true,
+            "classes": [],
+            "tooltip": false,
+            "showTag": true,
+            "children": [
+              {
+                "tag": "div",
+                "attrs": {},
+                "kept": false,
+                "classes": [],
+                "tooltip": false,
+                "showTag": false,
+                "children": [
+                  {
+                    "tag": "img",
+                    "attrs": {},
+                    "kept": true,
+                    "classes": [],
+                    "tooltip": false,
+                    "showTag": true,
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "tag": "div",
+                "attrs": {},
+                "kept": false,
+                "classes": [],
+                "tooltip": false,
+                "showTag": false,
+                "children": [
+                  {
+                    "tag": "div",
+                    "attrs": {},
+                    "kept": false,
+                    "classes": [],
+                    "tooltip": false,
+                    "showTag": false,
+                    "children": [
+                      {
+                        "tag": "span",
+                        "attrs": {},
+                        "kept": false,
+                        "classes": [],
+                        "tooltip": false,
+                        "showTag": false,
+                        "children": [
+                          {
+                            "text": "Red Dead Redemption"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "text": "\n\t\t\t\t"
+                  },
+                  {
+                    "tag": "div",
+                    "attrs": {},
+                    "kept": false,
+                    "classes": [],
+                    "tooltip": false,
+                    "showTag": false,
+                    "children": [
+                      {
+                        "tag": "span",
+                        "attrs": {},
+                        "kept": true,
+                        "classes": [
+                          "platform_img"
+                        ],
+                        "tooltip": false,
+                        "showTag": false,
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "text": "\n                "
+                  },
+                  {
+                    "tag": "div",
+                    "attrs": {},
+                    "kept": false,
+                    "classes": [],
+                    "tooltip": false,
+                    "showTag": false,
+                    "children": [
+                      {
+                        "text": "29 Oct, 2024"
+                      }
+                    ]
+                  },
+                  {
+                    "text": "\n                "
+                  },
+                  {
+                    "tag": "div",
+                    "attrs": {},
+                    "kept": false,
+                    "classes": [],
+                    "tooltip": false,
+                    "showTag": false,
+                    "children": [
+                      {
+                        "tag": "span",
+                        "attrs": {},
+                        "kept": true,
+                        "classes": [],
+                        "tooltip": true,
+                        "showTag": false,
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "text": "\n\n\n                "
+                  },
+                  {
+                    "tag": "div",
+                    "attrs": {},
+                    "kept": false,
+                    "classes": [],
+                    "tooltip": false,
+                    "showTag": false,
+                    "children": [
+                      {
+                        "tag": "div",
+                        "attrs": {},
+                        "kept": false,
+                        "classes": [],
+                        "tooltip": false,
+                        "showTag": false,
+                        "children": [
+                          {
+                            "tag": "div",
+                            "attrs": {},
+                            "kept": false,
+                            "classes": [],
+                            "tooltip": false,
+                            "showTag": false,
+                            "children": [
+                              {
+                                "tag": "div",
+                                "attrs": {},
+                                "kept": false,
+                                "classes": [],
+                                "tooltip": false,
+                                "showTag": false,
+                                "children": [
+                                  {
+                                    "tag": "div",
+                                    "attrs": {},
+                                    "kept": false,
+                                    "classes": [],
+                                    "tooltip": false,
+                                    "showTag": false,
+                                    "children": [
+                                      {
+                                        "text": "49,99€"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "expected": "  a\n    img\n    \nRed Dead Redemption\n    .platform_img\n    \n29 Oct, 2024\n    tooltip\n    \n49,99€",
+      "browserExpected": "  a\n    img\n    \nRed Dead Redemption\n    .platform_img\n    \n29 Oct, 2024\n    tooltip\n    \n49,99€"
+    },
+    {
+      "name": "test_atml_steam-4",
+      "origin": "tests/unit/test_atml_steam.py",
+      "html": "<body><div><div class=\"header-buttons\"><button>tooltip</button>\n        </div>\n      <div class=\"code-header\">\n        <div class=\"selected-items\">\n          <div class=\"selected-item\"></div></div></div></div></body>",
+      "config": {},
+      "browser": true,
+      "tree": {
+        "tag": "body",
+        "children": [
+          {
+            "tag": "div",
+            "children": [
+              {
+                "tag": "div",
+                "attrs": {
+                  "class": "header-buttons"
+                },
+                "children": [
+                  {
+                    "tag": "button",
+                    "children": [
+                      {
+                        "_text": "tooltip"
+                      }
+                    ]
+                  },
+                  {
+                    "_text": "\n        "
+                  }
+                ]
+              },
+              {
+                "_text": "\n      "
+              },
+              {
+                "tag": "div",
+                "attrs": {
+                  "class": "code-header"
+                },
+                "children": [
+                  {
+                    "_text": "\n        "
+                  },
+                  {
+                    "tag": "div",
+                    "attrs": {
+                      "class": "selected-items"
+                    },
+                    "children": [
+                      {
+                        "_text": "\n          "
+                      },
+                      {
+                        "tag": "div",
+                        "attrs": {
+                          "class": "selected-item"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "renderTree": {
+        "tag": "body",
+        "attrs": {},
+        "kept": false,
+        "classes": [],
+        "tooltip": false,
+        "showTag": false,
+        "children": [
+          {
+            "tag": "div",
+            "attrs": {},
+            "kept": false,
+            "classes": [],
+            "tooltip": false,
+            "showTag": false,
+            "children": [
+              {
+                "tag": "div",
+                "attrs": {},
+                "kept": true,
+                "classes": [
+                  "header-buttons"
+                ],
+                "tooltip": false,
+                "showTag": false,
+                "children": [
+                  {
+                    "tag": "button",
+                    "attrs": {},
+                    "kept": true,
+                    "classes": [],
+                    "tooltip": false,
+                    "showTag": true,
+                    "children": [
+                      {
+                        "text": "tooltip"
+                      }
+                    ]
+                  },
+                  {
+                    "text": "\n        "
+                  }
+                ]
+              },
+              {
+                "text": "\n      "
+              },
+              {
+                "tag": "div",
+                "attrs": {},
+                "kept": true,
+                "classes": [
+                  "code-header"
+                ],
+                "tooltip": false,
+                "showTag": false,
+                "children": [
+                  {
+                    "text": "\n        "
+                  },
+                  {
+                    "tag": "div",
+                    "attrs": {},
+                    "kept": true,
+                    "classes": [
+                      "selected-items"
+                    ],
+                    "tooltip": false,
+                    "showTag": false,
+                    "children": [
+                      {
+                        "text": "\n          "
+                      },
+                      {
+                        "tag": "div",
+                        "attrs": {},
+                        "kept": true,
+                        "classes": [
+                          "selected-item"
+                        ],
+                        "tooltip": false,
+                        "showTag": false,
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "expected": "  .header-buttons\n    button\ntooltip\n  .code-header\n    .selected-items\n      .selected-item",
+      "browserExpected": "  .header-buttons\n    button\ntooltip\n  .code-header\n    .selected-items\n      .selected-item"
+    },
+    {
+      "name": "test_atml_steam-5",
+      "origin": "tests/unit/test_atml_steam.py",
+      "html": "<body><div><div><div class=\"header-buttons\"><button title=\"Oracle tooltip\"></button></div>\n      </div>\n    <div class=\"console-right-bloc console-content\"></div>\n    <div>\n      <div class=\"code-header\"><div class=\"selected-items\" onclick=\"\"><span class=\"selected-item\">Python 3</span></div></div></div></div></body>",
+      "config": {},
+      "browser": true,
+      "tree": {
+        "tag": "body",
+        "children": [
+          {
+            "tag": "div",
+            "children": [
+              {
+                "tag": "div",
+                "children": [
+                  {
+                    "tag": "div",
+                    "attrs": {
+                      "class": "header-buttons"
+                    },
+                    "children": [
+                      {
+                        "tag": "button",
+                        "_tooltip": true
+                      }
+                    ]
+                  },
+                  {
+                    "_text": "\n      "
+                  }
+                ]
+              },
+              {
+                "_text": "\n    "
+              },
+              {
+                "tag": "div",
+                "attrs": {
+                  "class": "console-right-bloc console-content"
+                }
+              },
+              {
+                "_text": "\n    "
+              },
+              {
+                "tag": "div",
+                "children": [
+                  {
+                    "_text": "\n      "
+                  },
+                  {
+                    "tag": "div",
+                    "attrs": {
+                      "class": "code-header"
+                    },
+                    "children": [
+                      {
+                        "tag": "div",
+                        "attrs": {
+                          "class": "selected-items",
+                          "onclick": ""
+                        },
+                        "children": [
+                          {
+                            "tag": "span",
+                            "attrs": {
+                              "class": "selected-item"
+                            },
+                            "children": [
+                              {
+                                "_text": "Python 3"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "renderTree": {
+        "tag": "body",
+        "attrs": {},
+        "kept": false,
+        "classes": [],
+        "tooltip": false,
+        "showTag": false,
+        "children": [
+          {
+            "tag": "div",
+            "attrs": {},
+            "kept": false,
+            "classes": [],
+            "tooltip": false,
+            "showTag": false,
+            "children": [
+              {
+                "tag": "div",
+                "attrs": {},
+                "kept": false,
+                "classes": [],
+                "tooltip": false,
+                "showTag": false,
+                "children": [
+                  {
+                    "tag": "div",
+                    "attrs": {},
+                    "kept": true,
+                    "classes": [
+                      "header-buttons"
+                    ],
+                    "tooltip": false,
+                    "showTag": false,
+                    "children": [
+                      {
+                        "tag": "button",
+                        "attrs": {},
+                        "kept": true,
+                        "classes": [],
+                        "tooltip": true,
+                        "showTag": true,
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "text": "\n      "
+                  }
+                ]
+              },
+              {
+                "text": "\n    "
+              },
+              {
+                "tag": "div",
+                "attrs": {},
+                "kept": false,
+                "classes": [],
+                "tooltip": false,
+                "showTag": false,
+                "children": []
+              },
+              {
+                "text": "\n    "
+              },
+              {
+                "tag": "div",
+                "attrs": {},
+                "kept": false,
+                "classes": [],
+                "tooltip": false,
+                "showTag": false,
+                "children": [
+                  {
+                    "text": "\n      "
+                  },
+                  {
+                    "tag": "div",
+                    "attrs": {},
+                    "kept": true,
+                    "classes": [
+                      "code-header"
+                    ],
+                    "tooltip": false,
+                    "showTag": false,
+                    "children": [
+                      {
+                        "tag": "div",
+                        "attrs": {
+                          "onclick": ""
+                        },
+                        "kept": true,
+                        "classes": [
+                          "selected-items"
+                        ],
+                        "tooltip": false,
+                        "showTag": false,
+                        "children": [
+                          {
+                            "tag": "span",
+                            "attrs": {},
+                            "kept": true,
+                            "classes": [
+                              "selected-item"
+                            ],
+                            "tooltip": false,
+                            "showTag": false,
+                            "children": [
+                              {
+                                "text": "Python 3"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "expected": "  .header-buttons\n    button tooltip\n  .code-header\n    .selected-items onclick\n      .selected-item\nPython 3",
+      "browserExpected": "  .header-buttons\n    button tooltip\n  .code-header\n    .selected-items onclick\n      .selected-item\nPython 3"
+    },
+    {
+      "name": "test_html_generators-1",
+      "origin": "tests/unit/test_html_generators.py",
+      "html": "<body><section>Details</section><button data-action=\"save\">Save</button></body>",
+      "config": {},
+      "browser": true,
+      "tree": {
+        "tag": "body",
+        "children": [
+          {
+            "tag": "section",
+            "children": [
+              {
+                "_text": "Details"
+              }
+            ]
+          },
+          {
+            "tag": "button",
+            "attrs": {
+              "data-action": "save"
+            },
+            "children": [
+              {
+                "_text": "Save"
+              }
+            ]
+          }
+        ]
+      },
+      "renderTree": {
+        "tag": "body",
+        "attrs": {},
+        "kept": false,
+        "classes": [],
+        "tooltip": false,
+        "showTag": false,
+        "children": [
+          {
+            "tag": "section",
+            "attrs": {},
+            "kept": false,
+            "classes": [],
+            "tooltip": false,
+            "showTag": false,
+            "children": [
+              {
+                "text": "Details"
+              }
+            ]
+          },
+          {
+            "tag": "button",
+            "attrs": {},
+            "kept": true,
+            "classes": [],
+            "tooltip": false,
+            "showTag": true,
+            "children": [
+              {
+                "text": "Save"
+              }
+            ]
+          }
+        ]
+      },
+      "expected": "Details\n  button\nSave",
+      "browserExpected": "Details\n  button\nSave"
+    },
+    {
+      "name": "test_html_generators-2",
+      "origin": "tests/unit/test_html_generators.py",
+      "html": "<body><button id=\"btn1\">Test button</button></body>",
+      "config": {},
+      "browser": true,
+      "tree": {
+        "tag": "body",
+        "children": [
+          {
+            "tag": "button",
+            "attrs": {
+              "id": "btn1"
+            },
+            "children": [
+              {
+                "_text": "Test button"
+              }
+            ]
+          }
+        ]
+      },
+      "renderTree": {
+        "tag": "body",
+        "attrs": {},
+        "kept": false,
+        "classes": [],
+        "tooltip": false,
+        "showTag": false,
+        "children": [
+          {
+            "tag": "button",
+            "attrs": {
+              "id": "btn1"
+            },
+            "kept": true,
+            "classes": [],
+            "tooltip": false,
+            "showTag": true,
+            "children": [
+              {
+                "text": "Test button"
+              }
+            ]
+          }
+        ]
+      },
+      "expected": "  button #btn1\nTest button",
+      "browserExpected": "  button #btn1\nTest button"
+    },
+    {
+      "name": "test_html_generators-3",
+      "origin": "tests/unit/test_html_generators.py",
+      "html": "<body><div><a href=\"#\">Link</a></div></body>",
+      "config": {},
+      "browser": true,
+      "tree": {
+        "tag": "body",
+        "children": [
+          {
+            "tag": "div",
+            "children": [
+              {
+                "tag": "a",
+                "attrs": {
+                  "href": "#"
+                },
+                "children": [
+                  {
+                    "_text": "Link"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "renderTree": {
+        "tag": "body",
+        "attrs": {},
+        "kept": false,
+        "classes": [],
+        "tooltip": false,
+        "showTag": false,
+        "children": [
+          {
+            "tag": "div",
+            "attrs": {},
+            "kept": false,
+            "classes": [],
+            "tooltip": false,
+            "showTag": false,
+            "children": [
+              {
+                "tag": "a",
+                "attrs": {},
+                "kept": true,
+                "classes": [],
+                "tooltip": false,
+                "showTag": true,
+                "children": [
+                  {
+                    "text": "Link"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "expected": "  a\nLink",
+      "browserExpected": "  a\nLink"
+    },
+    {
+      "name": "test_html_special_chars-1",
+      "origin": "tests/unit/test_html_special_chars.py",
+      "html": "<body><p>Test with special chars: RTL text and non-breaking spaces</p></body>",
+      "config": {},
+      "browser": true,
+      "tree": {
+        "tag": "body",
+        "children": [
+          {
+            "tag": "p",
+            "children": [
+              {
+                "_text": "Test with special chars: RTL text and non-breaking spaces"
+              }
+            ]
+          }
+        ]
+      },
+      "renderTree": {
+        "tag": "body",
+        "attrs": {},
+        "kept": false,
+        "classes": [],
+        "tooltip": false,
+        "showTag": false,
+        "children": [
+          {
+            "tag": "p",
+            "attrs": {},
+            "kept": false,
+            "classes": [],
+            "tooltip": false,
+            "showTag": false,
+            "children": [
+              {
+                "text": "Test with special chars: RTL text and non-breaking spaces"
+              }
+            ]
+          }
+        ]
+      },
+      "expected": "Test with special chars: RTL text and non-breaking spaces",
+      "browserExpected": "Test with special chars: RTL text and non-breaking spaces"
+    },
+    {
+      "name": "test_html_special_chars-2",
+      "origin": "tests/unit/test_html_special_chars.py",
+      "html": "<body><button id=\"btn\">Click me!</button><a href=\"#\">Link text</a></body>",
+      "config": {},
+      "browser": true,
+      "tree": {
+        "tag": "body",
+        "children": [
+          {
+            "tag": "button",
+            "attrs": {
+              "id": "btn"
+            },
+            "children": [
+              {
+                "_text": "Click me!"
+              }
+            ]
+          },
+          {
+            "tag": "a",
+            "attrs": {
+              "href": "#"
+            },
+            "children": [
+              {
+                "_text": "Link text"
+              }
+            ]
+          }
+        ]
+      },
+      "renderTree": {
+        "tag": "body",
+        "attrs": {},
+        "kept": false,
+        "classes": [],
+        "tooltip": false,
+        "showTag": false,
+        "children": [
+          {
+            "tag": "button",
+            "attrs": {
+              "id": "btn"
+            },
+            "kept": true,
+            "classes": [],
+            "tooltip": false,
+            "showTag": true,
+            "children": [
+              {
+                "text": "Click me!"
+              }
+            ]
+          },
+          {
+            "tag": "a",
+            "attrs": {},
+            "kept": true,
+            "classes": [],
+            "tooltip": false,
+            "showTag": true,
+            "children": [
+              {
+                "text": "Link text"
+              }
+            ]
+          }
+        ]
+      },
+      "expected": "  button #btn\nClick me!\n  a\nLink text",
+      "browserExpected": "  button #btn\nClick me!\n  a\nLink text"
+    },
+    {
+      "name": "test_html_visible_div_processing-1",
+      "origin": "tests/unit/test_html_visible_div_processing.py",
+      "html": "<body><button id=\"submit-btn\">Submit</button></body>",
+      "config": {},
+      "browser": true,
+      "tree": {
+        "tag": "body",
+        "children": [
+          {
+            "tag": "button",
+            "attrs": {
+              "id": "submit-btn"
+            },
+            "children": [
+              {
+                "_text": "Submit"
+              }
+            ]
+          }
+        ]
+      },
+      "renderTree": {
+        "tag": "body",
+        "attrs": {},
+        "kept": false,
+        "classes": [],
+        "tooltip": false,
+        "showTag": false,
+        "children": [
+          {
+            "tag": "button",
+            "attrs": {
+              "id": "submit-btn"
+            },
+            "kept": true,
+            "classes": [],
+            "tooltip": false,
+            "showTag": true,
+            "children": [
+              {
+                "text": "Submit"
+              }
+            ]
+          }
+        ]
+      },
+      "expected": "  button #submit-btn\nSubmit",
+      "browserExpected": "  button #submit-btn\nSubmit"
+    },
+    {
+      "name": "test_html_visible_div_processing-2",
+      "origin": "tests/unit/test_html_visible_div_processing.py",
+      "html": "<body><div><button>Click</button></div></body>",
+      "config": {},
+      "browser": true,
+      "tree": {
+        "tag": "body",
+        "children": [
+          {
+            "tag": "div",
+            "children": [
+              {
+                "tag": "button",
+                "children": [
+                  {
+                    "_text": "Click"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "renderTree": {
+        "tag": "body",
+        "attrs": {},
+        "kept": false,
+        "classes": [],
+        "tooltip": false,
+        "showTag": false,
+        "children": [
+          {
+            "tag": "div",
+            "attrs": {},
+            "kept": false,
+            "classes": [],
+            "tooltip": false,
+            "showTag": false,
+            "children": [
+              {
+                "tag": "button",
+                "attrs": {},
+                "kept": true,
+                "classes": [],
+                "tooltip": false,
+                "showTag": true,
+                "children": [
+                  {
+                    "text": "Click"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "expected": "  button\nClick",
+      "browserExpected": "  button\nClick"
+    },
+    {
+      "name": "inline-tag-list-and-css",
+      "origin": "html_atml_generator.py::_render_node inline tag list",
+      "html": "<body><div><span style=\"display:block\">A</span><span>B</span><div style=\"display:inline\">C</div><span>D</span><u>E</u><span>F</span></div></body>",
+      "config": {},
+      "browser": true,
+      "tree": {
+        "tag": "body",
+        "children": [
+          {
+            "tag": "div",
+            "children": [
+              {
+                "tag": "span",
+                "attrs": {
+                  "style": "display:block"
+                },
+                "children": [
+                  {
+                    "_text": "A"
+                  }
+                ]
+              },
+              {
+                "tag": "span",
+                "children": [
+                  {
+                    "_text": "B"
+                  }
+                ]
+              },
+              {
+                "tag": "div",
+                "attrs": {
+                  "style": "display:inline"
+                },
+                "children": [
+                  {
+                    "_text": "C"
+                  }
+                ]
+              },
+              {
+                "tag": "span",
+                "children": [
+                  {
+                    "_text": "D"
+                  }
+                ]
+              },
+              {
+                "tag": "u",
+                "children": [
+                  {
+                    "_text": "E"
+                  }
+                ]
+              },
+              {
+                "tag": "span",
+                "children": [
+                  {
+                    "_text": "F"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "renderTree": {
+        "tag": "body",
+        "attrs": {},
+        "kept": false,
+        "classes": [],
+        "tooltip": false,
+        "showTag": false,
+        "children": [
+          {
+            "tag": "div",
+            "attrs": {},
+            "kept": false,
+            "classes": [],
+            "tooltip": false,
+            "showTag": false,
+            "children": [
+              {
+                "tag": "span",
+                "attrs": {},
+                "kept": false,
+                "classes": [],
+                "tooltip": false,
+                "showTag": false,
+                "children": [
+                  {
+                    "text": "A"
+                  }
+                ]
+              },
+              {
+                "tag": "span",
+                "attrs": {},
+                "kept": false,
+                "classes": [],
+                "tooltip": false,
+                "showTag": false,
+                "children": [
+                  {
+                    "text": "B"
+                  }
+                ]
+              },
+              {
+                "tag": "div",
+                "attrs": {},
+                "kept": false,
+                "classes": [],
+                "tooltip": false,
+                "showTag": false,
+                "children": [
+                  {
+                    "text": "C"
+                  }
+                ]
+              },
+              {
+                "tag": "span",
+                "attrs": {},
+                "kept": false,
+                "classes": [],
+                "tooltip": false,
+                "showTag": false,
+                "children": [
+                  {
+                    "text": "D"
+                  }
+                ]
+              },
+              {
+                "tag": "u",
+                "attrs": {},
+                "kept": false,
+                "classes": [],
+                "tooltip": false,
+                "showTag": false,
+                "children": [
+                  {
+                    "text": "E"
+                  }
+                ]
+              },
+              {
+                "tag": "span",
+                "attrs": {},
+                "kept": false,
+                "classes": [],
+                "tooltip": false,
+                "showTag": false,
+                "children": [
+                  {
+                    "text": "F"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "expected": "AB\nC\nD\nE\nF",
+      "browserExpected": "AB\nC\nD\nE\nF"
+    },
+    {
+      "name": "raw-special-characters",
+      "origin": "tests/unit/test_html_special_chars.py (extended character probe)",
+      "html": "<body><button id=\"special\">  Été &amp; &lt;code&gt; \"你好\" \\ fin  </button></body>",
+      "config": {},
+      "browser": true,
+      "tree": {
+        "tag": "body",
+        "children": [
+          {
+            "tag": "button",
+            "attrs": {
+              "id": "special"
+            },
+            "children": [
+              {
+                "_text": "  Été & <code> \"你好\" \\ fin  "
+              }
+            ]
+          }
+        ]
+      },
+      "renderTree": {
+        "tag": "body",
+        "attrs": {},
+        "kept": false,
+        "classes": [],
+        "tooltip": false,
+        "showTag": false,
+        "children": [
+          {
+            "tag": "button",
+            "attrs": {
+              "id": "special"
+            },
+            "kept": true,
+            "classes": [],
+            "tooltip": false,
+            "showTag": true,
+            "children": [
+              {
+                "text": "  Été & <code> \"你好\" \\ fin  "
+              }
+            ]
+          }
+        ]
+      },
+      "expected": "  button #special\n Été & <code> \"你好\" \\ fin  ",
+      "browserExpected": "  button #special\n Été & <code> \"你好\" \\ fin  "
+    },
+    {
+      "name": "onclick-and-listeners",
+      "origin": "html_atml_generator.py::_render_node event suppression",
+      "html": "<body><div onclick=\"\" data-has-listener=\"click,keydown\">Action</div><span role=\"button\" onclick=\"\" data-has-listener=\"click\">Role</span><button onclick=\"\" data-has-listener=\"click\">Native</button></body>",
+      "config": {},
+      "browser": true,
+      "tree": {
+        "tag": "body",
+        "children": [
+          {
+            "tag": "div",
+            "attrs": {
+              "onclick": ""
+            },
+            "_listeners": "click,keydown",
+            "children": [
+              {
+                "_text": "Action"
+              }
+            ]
+          },
+          {
+            "tag": "span",
+            "attrs": {
+              "role": "button",
+              "onclick": ""
+            },
+            "_listeners": "click",
+            "children": [
+              {
+                "_text": "Role"
+              }
+            ]
+          },
+          {
+            "tag": "button",
+            "attrs": {
+              "onclick": ""
+            },
+            "_listeners": "click",
+            "children": [
+              {
+                "_text": "Native"
+              }
+            ]
+          }
+        ]
+      },
+      "renderTree": {
+        "tag": "body",
+        "attrs": {},
+        "kept": false,
+        "classes": [],
+        "tooltip": false,
+        "showTag": false,
+        "children": [
+          {
+            "tag": "div",
+            "attrs": {
+              "onclick": "",
+              "on": "click,keydown"
+            },
+            "kept": true,
+            "classes": [],
+            "tooltip": false,
+            "showTag": false,
+            "children": [
+              {
+                "text": "Action"
+              }
+            ]
+          },
+          {
+            "tag": "span",
+            "attrs": {
+              "role": "button",
+              "onclick": "",
+              "on": "click"
+            },
+            "kept": true,
+            "classes": [],
+            "tooltip": false,
+            "showTag": false,
+            "children": [
+              {
+                "text": "Role"
+              }
+            ]
+          },
+          {
+            "tag": "button",
+            "attrs": {
+              "onclick": "",
+              "on": "click"
+            },
+            "kept": true,
+            "classes": [],
+            "tooltip": false,
+            "showTag": true,
+            "children": [
+              {
+                "text": "Native"
+              }
+            ]
+          }
+        ]
+      },
+      "expected": "  onclick on:click on:keydown\nAction\n  role=button\nRole\n  button\nNative",
+      "browserExpected": "  onclick on:click on:keydown\nAction\n  role=button\nRole\n  button\nNative"
+    },
+    {
+      "name": "configured-attrs-and-tags",
+      "origin": "tests/unit/test_html_generators.py::test_generate_uses_url_specific_atml_config",
+      "html": "<body><section>Details</section><button data-action=\"save\">Save</button><div data-business=\"42\" class=\"business-row\">Business</div></body>",
+      "config": {
+        "keep_attrs": [
+          "data-action",
+          "data-business"
+        ],
+        "keep_tags": [
+          "section"
+        ],
+        "class_regex": "business"
+      },
+      "browser": true,
+      "tree": {
+        "tag": "body",
+        "children": [
+          {
+            "tag": "section",
+            "children": [
+              {
+                "_text": "Details"
+              }
+            ]
+          },
+          {
+            "tag": "button",
+            "attrs": {
+              "data-action": "save"
+            },
+            "children": [
+              {
+                "_text": "Save"
+              }
+            ]
+          },
+          {
+            "tag": "div",
+            "attrs": {
+              "data-business": "42",
+              "class": "business-row"
+            },
+            "children": [
+              {
+                "_text": "Business"
+              }
+            ]
+          }
+        ]
+      },
+      "renderTree": {
+        "tag": "body",
+        "attrs": {},
+        "kept": false,
+        "classes": [],
+        "tooltip": false,
+        "showTag": false,
+        "children": [
+          {
+            "tag": "section",
+            "attrs": {},
+            "kept": true,
+            "classes": [],
+            "tooltip": false,
+            "showTag": true,
+            "children": [
+              {
+                "text": "Details"
+              }
+            ]
+          },
+          {
+            "tag": "button",
+            "attrs": {
+              "data-action": "save"
+            },
+            "kept": true,
+            "classes": [],
+            "tooltip": false,
+            "showTag": true,
+            "children": [
+              {
+                "text": "Save"
+              }
+            ]
+          },
+          {
+            "tag": "div",
+            "attrs": {
+              "data-business": "42"
+            },
+            "kept": true,
+            "classes": [
+              "business-row"
+            ],
+            "tooltip": false,
+            "showTag": false,
+            "children": [
+              {
+                "text": "Business"
+              }
+            ]
+          }
+        ]
+      },
+      "expected": "  section\nDetails\n  button data-action=save\nSave\n  .business-row data-business=42\nBusiness",
+      "browserExpected": "  section\nDetails\n  button data-action=save\nSave\n  .business-row data-business=42\nBusiness"
+    },
+    {
+      "name": "redundant-and-presentation-roles-renderer-input",
+      "origin": "html_atml_generator.py::_render_node role suppression and extraction filtering",
+      "html": "<body><button role=\"tab\">Button</button><span role=\"presentation\">Presentation</span><span role=\"button\">Click</span></body>",
+      "config": {},
+      "browser": true,
+      "tree": {
+        "tag": "body",
+        "children": [
+          {
+            "tag": "button",
+            "attrs": {
+              "role": "tab"
+            },
+            "children": [
+              {
+                "_text": "Button"
+              }
+            ]
+          },
+          {
+            "tag": "span",
+            "attrs": {
+              "role": "presentation"
+            },
+            "children": [
+              {
+                "_text": "Presentation"
+              }
+            ]
+          },
+          {
+            "tag": "span",
+            "attrs": {
+              "role": "button"
+            },
+            "children": [
+              {
+                "_text": "Click"
+              }
+            ]
+          }
+        ]
+      },
+      "renderTree": {
+        "tag": "body",
+        "attrs": {},
+        "kept": false,
+        "classes": [],
+        "tooltip": false,
+        "showTag": false,
+        "children": [
+          {
+            "tag": "button",
+            "attrs": {
+              "role": "tab"
+            },
+            "kept": true,
+            "classes": [],
+            "tooltip": false,
+            "showTag": true,
+            "children": [
+              {
+                "text": "Button"
+              }
+            ]
+          },
+          {
+            "tag": "span",
+            "attrs": {
+              "role": "presentation"
+            },
+            "kept": true,
+            "classes": [],
+            "tooltip": false,
+            "showTag": false,
+            "children": [
+              {
+                "text": "Presentation"
+              }
+            ]
+          },
+          {
+            "tag": "span",
+            "attrs": {
+              "role": "button"
+            },
+            "kept": true,
+            "classes": [],
+            "tooltip": false,
+            "showTag": false,
+            "children": [
+              {
+                "text": "Click"
+              }
+            ]
+          }
+        ]
+      },
+      "expected": "  button\nButton\n  role=presentation\nPresentation\n  role=button\nClick",
+      "browserExpected": "  button\nButton\nPresentation\n  role=button\nClick"
+    },
+    {
+      "name": "configured-shortened-aria",
+      "origin": "html_atml_generator.py attribute filtering before/after aria shortening",
+      "html": "<body><div id=\"anchor\" aria-custom=\"secret metadata\" aria-label=\"Accessible\">Content</div></body>",
+      "config": {
+        "keep_attrs": [
+          "aria-custom"
+        ]
+      },
+      "browser": true,
+      "tree": {
+        "tag": "body",
+        "children": [
+          {
+            "tag": "div",
+            "attrs": {
+              "id": "anchor",
+              "aria-custom": "secret metadata",
+              "aria-label": "Accessible"
+            },
+            "children": [
+              {
+                "_text": "Content"
+              }
+            ]
+          }
+        ]
+      },
+      "renderTree": {
+        "tag": "body",
+        "attrs": {},
+        "kept": false,
+        "classes": [],
+        "tooltip": false,
+        "showTag": false,
+        "children": [
+          {
+            "tag": "div",
+            "attrs": {
+              "id": "anchor",
+              "aria-custom": "secret metadata"
+            },
+            "kept": true,
+            "classes": [],
+            "tooltip": false,
+            "showTag": false,
+            "children": [
+              {
+                "text": "Content"
+              }
+            ]
+          }
+        ]
+      },
+      "expected": "  #anchor aria-custom=\"secret metadata\"\nContent",
+      "browserExpected": "  #anchor label=Accessible\nContent"
+    }
+  ]
+}

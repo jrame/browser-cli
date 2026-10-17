@@ -1,9 +1,13 @@
 node_modules/
+.upstream/
+.artifacts/
+.build/
+/.logs/
+/tmp/
 .vscode/
 /test-results/
-/.playwright-cli/
+/auth.json
 # Ignore self-skill which is a build artifact
-.claude/skills/playwright-cli/
+.claude/skills/browser/
+.agents/skills/browser/
 .npmrc
-# Playwright CLI output (may contain credentials)
-.playwright-cli/

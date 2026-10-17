@@ -1,616 +1,191 @@
-# playwright-cli
+# browser
 
-Playwright CLI with SKILLS
+Local fork of [Microsoft Playwright CLI](https://github.com/microsoft/playwright-cli)
+with ATML snapshots, URL-specific filtering and compact actionable references.
+The installed command is **browser**.
 
-### Playwright CLI vs Playwright MCP
+## Install
 
-This package provides CLI interface into Playwright. If you are using **coding agents**, that is the best fit.
+Requires Node.js 20 or newer, npm and Git. The first build downloads pinned
+Playwright sources and build dependencies.
 
-- **CLI**: Modern **coding agents** increasingly favor CLI–based workflows exposed as SKILLs over MCP because CLI invocations are more token-efficient: they avoid loading large tool schemas and verbose accessibility trees into the model context, allowing agents to act through concise, purpose-built commands. This makes CLI + SKILLs better suited for high-throughput coding agents that must balance browser automation with large codebases, tests, and reasoning within limited context windows.
-
-- **MCP**: MCP remains relevant for specialized agentic loops that benefit from persistent state, rich introspection, and iterative reasoning over page structure, such as exploratory automation, self-healing tests, or long-running autonomous workflows where maintaining continuous browser context outweighs token cost concerns. Learn more about [Playwright MCP](https://github.com/microsoft/playwright-mcp).
-
-### Key Features
-
-- **Token-efficient**. Does not force page data into LLM.
-
-### Requirements
-- Node.js 18 or newer
-- Claude Code, GitHub Copilot, or any other coding agent.
-
-## Getting Started
-
-## Installation
-
-```bash
-npm install -g @playwright/cli@latest
-playwright-cli --help
+```powershell
+npm ci
+npm run build
+node .artifacts/playwright-core/cli.js install chromium firefox
+npm link
+browser --help
 ```
 
-### Installing skills
+Without a global install, use `node browser.js` or `npm run browser --`.
+Generated sources live under `.upstream/`, the compiled engine under
+`.artifacts/` and build logs under `.logs/browser-cli/build/`.
 
-Claude Code, GitHub Copilot and others will use the locally installed skills.
+## Use
 
-```bash
-playwright-cli install --skills
+```powershell
+browser open https://example.com
+browser snapshot --inline
+browser fill :email 'user@example.com'
+browser click :submit
+browser click :13
+browser snapshot '#form' --depth=2 --inline
+browser find 'Connexion'
+browser snapshot --format=yaml
+browser snapshot --filename=page.atml
+browser close
 ```
 
-### Skills-less operation
+Chain commands on one line with `--then`:
 
-Point your agent at the CLI and let it cook. It'll read the skill off `playwright-cli --help` on its own:
-
-```
-Test the "add todo" flow on https://demo.playwright.dev/todomvc using playwright-cli.
-Check playwright-cli --help for available commands.
+```powershell
+browser -s=ff type "Buy groceries" --then press Enter
+browser -s=ff click :email --then type "user@example.com" --then press Tab
 ```
 
-## Demo
+Commands run sequentially and stop at the first failure. Each command inherits
+the preceding session (`-s=ff`, `-s ff`, `--session=ff` or `--session ff`), unless
+it selects another session. Other flags apply only to their own command; output
+is printed for each command, with one automatic snapshot after the final
+command. Explicit `snapshot` commands still capture their requested state.
+Intermediate steps refresh element references without writing snapshot files.
+Put `--` before positional arguments to pass a
+literal `--then` (for example `browser type -- --then`); this also ends chain
+parsing for the rest of the invocation.
 
-```
-> Use playwright skills to test https://demo.playwright.dev/todomvc/.
-  Take screenshots for all successful and failing scenarios.
-```
+Shell separators such as `;` and `&` are handled by your shell. With `;`, repeat
+the executable: `browser -s=ff type "Buy groceries"; browser -s=ff press Enter`.
+That PowerShell form runs the second command even if the first fails.
 
-Your agent will be running commands, but it does not mean you can't play with it manually:
+Snapshots are saved as `.atml` files under `.logs/browser-cli/` by default;
+successful responses print `ok` followed by the plain file path. ATML files
+start with `url:` and `title:` lines, followed by a blank line and the tree.
+Errors and useful events remain visible. `--inline` prints the snapshot instead.
+`--filename` selects a file and cannot be combined with `--inline`.
+`--format=atml|yaml` also applies to automatic snapshots after actions.
+`type` captures the entered value in ATML even without `--submit`.
+`find` stays inline unless `--filename` is supplied. `--json` and `--raw`
+preserve upstream response modes.
 
-```
-playwright-cli open https://demo.playwright.dev/todomvc/ --headed
-playwright-cli type "Buy groceries"
-playwright-cli press Enter
-playwright-cli type "Water flowers"
-playwright-cli press Enter
-playwright-cli check e21
-playwright-cli check e35
-playwright-cli screenshot
-```
-
-## Headed operation
-
-Playwright CLI is headless by default. If you'd like to see the browser, pass `--headed` to `open`:
-
-```bash
-playwright-cli open https://playwright.dev --headed
-```
-
-## Sessions
-
-Playwright CLI keeps the browser profile in memory by default. Your cookies and storage state
-are preserved between CLI calls within the session, but lost when the browser closes. Use
-`--persistent` to save the profile to disk for persistence across browser restarts.
-
-You can use different instances of the browser for different projects with sessions. Pass `-s=` to
-the invocation to talk to a specific browser.
-
-```bash
-playwright-cli open https://playwright.dev
-playwright-cli -s=example open https://example.com --persistent
-playwright-cli list
+```text
+:email input type=email value=user@example.com
+:submit button
+  : Connexion
+:13 button
+  : Continuer
 ```
 
-You can run your coding agent with the `PLAYWRIGHT_CLI_SESSION` environment variable:
+Interactive elements use a unique usable HTML ID (`:submit`) or a numeric
+reference (`:13`). Numeric references retain DOM identity within the active tab
+and are never reused for another element. Stale references fail explicitly.
+Duplicate IDs, numeric IDs and IDs containing whitespace or quotes use numeric
+references. Structural elements keep `id=value` and can be targeted by selectors.
+Test IDs stay visible as attributes. Native `e13` / `f2e13` references and
+`#id` targets also work.
 
-```bash
-PLAYWRIGHT_CLI_SESSION=todo-app claude .
+`: ` (colon followed by a space) starts a text line; `:13` or `:submit`
+starts an actionable element. Numeric references and simple named references
+can be passed without quotes in Bash, PowerShell and cmd. Quote targets that
+contain shell metacharacters. The former `@` reference prefix is no longer supported.
+
+ATML omits the body wrapper, starts at column zero and indents children by two
+spaces. Text lines start with `: `. Generic tags are suppressed unless retained
+by configuration. Hidden content and script/style nodes are omitted. Snapshots
+include live form state, iframe and open shadow-root content. Filled password
+inputs show `value=****` (a fixed mask); empty ones show a bare `value`.
+Closed shadow roots are inaccessible. Event hints cover inline
+handlers and tracked element listeners registered after instrumentation; document
+and window delegation is not attributed to individual descendants.
+
+Snapshots, executed JavaScript logs and screenshots use `date_title.ext`
+filenames with UTC milliseconds and a sanitized page title. Artifacts from one
+command share a basename. Code is saved as a `.js` file beside the snapshot;
+its link is omitted from compact output. Raw and JSON
+modes still save code logs but omit their links. Console logs use
+`date_title_console.log`. Explicit filenames are preserved.
+
+Sessions, tabs, screenshots, PDF, dashboard, recording and code execution remain
+available; see `browser --help` and [the bundled skill](skills/browser/SKILL.md).
+Browser JSON options live in `.config/browser-cli/cli.config.json`, with
+`~/.config/browser-cli/cli.config.json` providing global defaults.
+Sessions use a separate daemon cache. Ignore `.logs/browser-cli/` in Git.
+
+## ATML configuration
+
+Lookup order: `--atml-config`, `BROWSER_ATML_CONFIG`,
+`.config/browser-cli/config.toml` in the working directory, then
+`~/.config/browser-cli/config.toml`. Explicit paths must exist.
+
+```toml
+[atml]
+keep_attrs = []
+keep_tags = []
+remove_selectors = [".cookie-banner"]
+
+[atml.rules.app]
+url = "https://example.com/app/**"
+keep_attrs = ["data-testid"]
+remove_selectors = [".sidebar"]
+class_regex = "selected|active"
 ```
 
-Or instruct it to prepend `-s=` to the calls.
+URL queries and fragments are ignored. `*` stays within one path segment;
+`**` crosses segments. Rules apply from broadest to most specific: lists merge
+with deduplication and `class_regex` takes the most specific value. Ties require
+distinct integer priorities. Each iframe uses its own URL. Rules reload on each
+snapshot. Filters affect output only. Invalid configurations and selectors fail
+explicitly.
 
-A headless session shuts down on its own after an hour without commands; run `open` again to
-start a new one. Headed browsers stay open. Use `open --idle-timeout=<ms>` to change the timeout,
-or `0` to disable it.
+## Navigation allowlist
 
-Manage your sessions as follows:
+Add this table to the same TOML file to restrict page navigation:
 
-```bash
-playwright-cli list                     # list all sessions
-playwright-cli close-all                # close all browsers
-playwright-cli kill-all                 # forcefully kill all browser processes
+```toml
+[navigation]
+allowed_urls = ["https://example.com/app/**", "https://example.org/exact-page"]
 ```
 
-## Monitoring
+Omitting `allowed_urls` allows unrestricted navigation; an empty list blocks
+all HTTP(S) pages. `about:blank` remains available. Patterns require HTTP(S), an
+exact host and optional path wildcards, without credentials, queries or fragments.
+Scheme, host, default ports and dot segments are normalized before matching.
 
-Use `playwright-cli show` to open a visual dashboard that lets you see and control all running
-browser sessions. This is useful when your coding agents are running browser automation in the
-background and you want to observe their progress or step in to help.
+Chromium/Chrome enforce the list for links, redirects, popups, iframes and
+JavaScript navigation before requests are sent. Subresources and API calls are
+unaffected; existing JSON network restrictions still apply. User route mocks
+cannot bypass the list. Enforcement requires a local connection with service
+workers blocked; unsupported remote or preexisting contexts are rejected.
+New sessions block service workers automatically when the list is enabled.
 
-```bash
-playwright-cli show
+Firefox checks explicit `open` and `goto` commands only. Redirect destinations,
+clicked links, popups, iframes and script-driven navigation remain unrestricted.
+WebKit rejects the allowlist. This is a page navigation policy, not a network
+sandbox for code execution or browser extensions.
+
+The policy loads at session startup; restart with `browser close` then
+`browser open ...` after edits. Use `BROWSER_ATML_CONFIG` to select another
+policy file; `--atml-config` selects snapshot filters only.
+
+## Development
+
+```powershell
+npm test
+npm run test:unit
+npm run test:browser
+npm run test:types
+node scripts/verify-clean-build.cjs
 ```
 
-<img width="1107" height="729" alt="Image" src="https://github.com/user-attachments/assets/99df739d-106a-4520-b004-bb315db41da7" />
-
-The dashboard opens a window with two views:
-
-- **Session grid** — shows all active sessions grouped by workspace, each with a live screencast
-  preview, session name, current URL, and page title. Click any session to zoom in.
-- **Session detail** — shows a live view of the selected session with a tab bar, navigation
-  controls (back, forward, reload, address bar), and full remote control. Click into the viewport
-  to take over mouse and keyboard input; press Escape to release.
-
-From the grid you can also close running sessions or delete data for inactive ones.
-
-## Commands
-
-### Core
-
-```bash
-playwright-cli open [url]               # open browser, optionally navigate to url
-playwright-cli goto <url>               # navigate to a url
-playwright-cli close                    # close the page
-playwright-cli type <text>              # type text into editable element
-playwright-cli click <ref> [button]     # perform click on a web page
-playwright-cli dblclick <ref> [button]  # perform double click on a web page
-playwright-cli fill <ref> <text>        # fill text into editable element
-playwright-cli fill <ref> <text> --submit # fill and press Enter
-playwright-cli drag <startRef> <endRef> # perform drag and drop between two elements
-playwright-cli drop <ref> --path=<file> # drop files onto an element (from outside the page)
-playwright-cli drop <ref> --data="k=v"  # drop data onto an element
-playwright-cli hover <ref>              # hover over element on page
-playwright-cli select <ref> <val>       # select an option in a dropdown
-playwright-cli upload <file>            # upload one or multiple files
-playwright-cli check <ref>              # check a checkbox or radio button
-playwright-cli uncheck <ref>            # uncheck a checkbox or radio button
-playwright-cli snapshot                 # capture page snapshot to obtain element ref
-playwright-cli snapshot --filename=f    # save snapshot to specific file
-playwright-cli snapshot <ref>           # snapshot a specific element
-playwright-cli snapshot --depth=N       # limit snapshot depth for efficiency
-playwright-cli find <text>              # search the snapshot for text, returns matching nodes
-playwright-cli find --regex <pattern>   # search the snapshot with a regexp
-playwright-cli find <text> --filename=f # save matches to a file
-playwright-cli eval <func> [ref]        # evaluate javascript expression on page or element
-playwright-cli dialog-accept [prompt]   # accept a dialog
-playwright-cli dialog-dismiss           # dismiss a dialog
-playwright-cli resize <w> <h>           # resize the browser window
-```
-
-### Navigation
-
-```bash
-playwright-cli go-back                  # go back to the previous page
-playwright-cli go-forward               # go forward to the next page
-playwright-cli reload                   # reload the current page
-```
-
-### Keyboard
-
-```bash
-playwright-cli press <key>              # press a key on the keyboard, `a`, `arrowleft`
-playwright-cli keydown <key>            # press a key down on the keyboard
-playwright-cli keyup <key>              # press a key up on the keyboard
-```
-
-### Mouse
-
-```bash
-playwright-cli mousemove <x> <y>        # move mouse to a given position
-playwright-cli mousedown [button]       # press mouse down
-playwright-cli mouseup [button]         # press mouse up
-playwright-cli mousewheel <dx> <dy>     # scroll mouse wheel
-```
-
-### Save as
-
-```bash
-playwright-cli screenshot [ref]         # screenshot of the current page or element
-playwright-cli screenshot --filename=f  # save screenshot with specific filename
-playwright-cli screenshot --hires       # capture at full device pixel ratio
-playwright-cli pdf                      # save page as pdf
-playwright-cli pdf --filename=page.pdf  # save pdf with specific filename
-```
-
-### Tabs
-
-```bash
-playwright-cli tab-list                 # list all tabs
-playwright-cli tab-new [url]            # create a new tab
-playwright-cli tab-close [index]        # close a browser tab
-playwright-cli tab-select <index>       # select a browser tab
-```
-
-### Storage
-
-```bash
-playwright-cli state-save [filename]    # save storage state
-playwright-cli state-load <filename>    # load storage state
-
-# Cookies
-playwright-cli cookie-list [--domain]   # list cookies
-playwright-cli cookie-get <name>        # get a cookie
-playwright-cli cookie-set <name> <val>  # set a cookie
-playwright-cli cookie-delete <name>     # delete a cookie
-playwright-cli cookie-clear             # clear all cookies
-
-# LocalStorage
-playwright-cli localstorage-list        # list localStorage entries
-playwright-cli localstorage-get <key>   # get localStorage value
-playwright-cli localstorage-set <k> <v> # set localStorage value
-playwright-cli localstorage-delete <k>  # delete localStorage entry
-playwright-cli localstorage-clear       # clear all localStorage
-
-# SessionStorage
-playwright-cli sessionstorage-list      # list sessionStorage entries
-playwright-cli sessionstorage-get <k>   # get sessionStorage value
-playwright-cli sessionstorage-set <k> <v> # set sessionStorage value
-playwright-cli sessionstorage-delete <k>  # delete sessionStorage entry
-playwright-cli sessionstorage-clear     # clear all sessionStorage
-```
-
-### Emulation
-
-```bash
-playwright-cli set-color-scheme <scheme> # emulate light or dark color scheme
-playwright-cli clear-color-scheme        # clear color scheme emulation
-playwright-cli set-reduced-motion <motion> # emulate reduced motion preference
-playwright-cli clear-reduced-motion      # clear reduced motion emulation
-playwright-cli set-forced-colors <colors> # emulate forced colors mode
-playwright-cli clear-forced-colors       # clear forced colors emulation
-playwright-cli set-contrast <contrast>   # emulate preferred contrast
-playwright-cli clear-contrast            # clear contrast emulation
-playwright-cli set-media <media>         # emulate CSS media type
-playwright-cli clear-media               # clear CSS media type emulation
-```
-
-### Network
-
-```bash
-playwright-cli route <pattern> [opts]   # mock network requests
-playwright-cli route-list               # list active routes
-playwright-cli unroute [pattern]        # remove route(s)
-```
-
-### DevTools
-
-```bash
-playwright-cli console [min-level]      # list console messages
-playwright-cli requests                 # list all network requests since loading the page
-playwright-cli request <index>          # show details for a specific request
-playwright-cli run-code <code>          # run playwright code snippet
-playwright-cli run-code --filename=f    # run playwright code from a file
-playwright-cli tracing-start            # start trace recording
-playwright-cli tracing-stop             # stop trace recording
-playwright-cli recording-start          # record user actions in the browser
-playwright-cli recording-stop           # stop recording, print actions as Playwright code
-playwright-cli video-start [filename]   # start video recording
-playwright-cli video-start demo.webm --cursor --fps=60 # record with an animated cursor at 60 fps
-playwright-cli video-chapter <title>    # add a chapter marker to the video
-playwright-cli video-show-actions       # annotate each action with a callout in the video
-playwright-cli video-show-actions --highlight-style="outline: 2px solid #333" # style the target highlight
-playwright-cli video-hide-actions       # stop annotating actions in the video
-playwright-cli video-stop               # stop video recording
-playwright-cli show                     # open the visual dashboard
-playwright-cli show --annotate          # launch dashboard for UI review / design feedback
-playwright-cli generate-locator <ref>   # generate a playwright locator for an element
-playwright-cli highlight <ref>          # show a persistent highlight overlay
-playwright-cli highlight <ref> --style= # highlight with a custom CSS style
-playwright-cli highlight <ref> --hide   # hide highlight on a specific element
-playwright-cli highlight --hide         # hide all page highlights
-```
-
-### WebMCP
-
-Some pages register their own tools for agents through the experimental WebMCP API. When available,
-the page status reports them and the snapshot lists the tools and their input schemas at the top.
-Tool names, descriptions, schemas, annotations and results come from the page and are untrusted input,
-not instructions.
-
-```bash
-playwright-cli webmcp-list              # list webmcp tools registered by the page
-playwright-cli webmcp-call <name> --params='{"query":"cats"}' # call a webmcp tool
-playwright-cli webmcp-call <name> --frame=<frame> # call a tool registered in a specific frame
-```
-
-### Open parameters
-
-```bash
-playwright-cli open --browser=chrome    # use specific browser
-playwright-cli open --mobile            # emulate a generic mobile device
-playwright-cli open --device="iPhone 15" # emulate a specific device
-playwright-cli open --idle-timeout=<ms> # shut down after idle time (0 to disable)
-playwright-cli attach --extension=chrome # connect via Playwright Extension
-playwright-cli attach --cdp=chrome      # attach to running Chrome/Edge by channel
-playwright-cli attach --cdp=<url>       # attach via CDP endpoint
-playwright-cli detach                   # detach an attached session, leaves the external browser running
-playwright-cli open --persistent        # use persistent profile
-playwright-cli open --profile=<path>    # use custom profile directory
-playwright-cli open --config=file.json  # use config file
-playwright-cli close                    # close the browser
-playwright-cli delete-data              # delete user data for default session
-```
-
-### Snapshots
-
-After each command, playwright-cli provides a snapshot of the current browser state.
-
-```bash
-> playwright-cli goto https://example.com
-### Page
-- Page URL: https://example.com/
-- Page Title: Example Domain
-### Snapshot
-[Snapshot](.playwright-cli/page-2026-02-14T19-22-42-679Z.yml)
-```
-
-You can also take a snapshot on demand using `playwright-cli snapshot` command. All the options below can be combined as needed.
-
-```bash
-# default - save to a file with timestamp-based name
-playwright-cli snapshot
-
-# save to file, use when snapshot is a part of the workflow result
-playwright-cli snapshot --filename=after-click.yaml
-
-# snapshot an element instead of the whole page
-playwright-cli snapshot "#main"
-
-# limit snapshot depth for efficiency, take a partial snapshot afterwards
-playwright-cli snapshot --depth=4
-playwright-cli snapshot e34
-
-# include each element's bounding box as [box=x,y,width,height]
-playwright-cli snapshot --boxes
-
-# search a large snapshot instead of capturing it all — returns matching nodes
-# with 3 lines of context around each match (like grep -C)
-playwright-cli find "Add to cart"
-playwright-cli find --regex "\\$[0-9]+\\.[0-9]{2}"
-# wrap the regexp in slashes to add flags, e.g. /i for case-insensitive
-playwright-cli find --regex "/sign (in|up)/i"
-```
-
-### Targeting elements
-
-By default, use refs from the snapshot to interact with page elements.
-
-```bash
-# get snapshot with refs
-playwright-cli snapshot
-
-# interact using a ref
-playwright-cli click e15
-```
-
-You can also use css selectors or Playwright locators.
-
-```bash
-# css selector
-playwright-cli click "#main > button.submit"
-
-# role locator
-playwright-cli click "getByRole('button', { name: 'Submit' })"
-
-# test id
-playwright-cli click "getByTestId('submit-button')"
-```
-
-### Sessions
-
-```bash
-playwright-cli -s=name <cmd>            # run command in named session
-playwright-cli -s=name close            # stop a named browser
-playwright-cli -s=name delete-data      # delete user data for named browser
-playwright-cli list                     # list all sessions
-playwright-cli close-all                # close all browsers
-playwright-cli kill-all                 # forcefully kill all browser processes
-```
-
-### Local installation
-
-If global `playwright-cli` command is not available, try a local version via `npx playwright cli`:
-
-```bash
-npx --no-install playwright --version
-```
-
-When local version is available, use `npx playwright cli` in all commands. Otherwise, install `playwright-cli` as a global command:
-
-```bash
-npm install -g @playwright/cli@latest
-```
-
-## Configuration file
-
-The Playwright CLI can be configured using a JSON configuration file. You can specify the configuration file using the `--config` command line option:
-
-```bash
-playwright-cli --config path/to/config.json open example.com
-```
-
-Playwright CLI will load config from `.playwright/cli.config.json` by default so that you did not need to specify it every time.
-
-<details>
-<summary>Configuration file schema</summary>
-
-```typescript
-{
-  /**
-   * The browser to use.
-   */
-  browser?: {
-    /**
-     * The type of browser to use.
-     */
-    browserName?: 'chromium' | 'firefox' | 'webkit';
-
-    /**
-     * Keep the browser profile in memory, do not save it to disk.
-     */
-    isolated?: boolean;
-
-    /**
-     * Path to a user data directory for browser profile persistence.
-     * Temporary directory is created by default.
-     */
-    userDataDir?: string;
-
-    /**
-     * Launch options passed to
-     * @see https://playwright.dev/docs/api/class-browsertype#browser-type-launch-persistent-context
-     *
-     * This is useful for settings options like `channel`, `headless`, `executablePath`, etc.
-     */
-    launchOptions?: playwright.LaunchOptions;
-
-    /**
-     * Context options for the browser context.
-     *
-     * This is useful for settings options like `viewport`.
-     */
-    contextOptions?: playwright.BrowserContextOptions;
-
-    /**
-     * Chrome DevTools Protocol endpoint to connect to an existing browser instance in case of Chromium family browsers.
-     */
-    cdpEndpoint?: string;
-
-    /**
-     * CDP headers to send with the connect request.
-     */
-    cdpHeaders?: Record<string, string>;
-
-    /**
-     * Timeout in milliseconds for connecting to CDP endpoint. Defaults to 30000 (30 seconds). Pass 0 to disable timeout.
-     */
-    cdpTimeout?: number;
-
-    /**
-     * Remote endpoint to connect to an existing Playwright server.
-     */
-    remoteEndpoint?: string;
-
-    /**
-     * Paths to TypeScript files to add as initialization scripts for Playwright page.
-     */
-    initPage?: string[];
-
-    /**
-     * Paths to JavaScript files to add as initialization scripts.
-     * The scripts will be evaluated in every page before any of the page's scripts.
-     */
-    initScript?: string[];
-  },
-
-  /**
-   * If specified, saves the Playwright video of the session into the output directory.
-   */
-  saveVideo?: {
-    width: number;
-    height: number;
-  };
-
-  /**
-   * The directory to save output files.
-   */
-  outputDir?: string;
-
-  /**
-   * Whether to save snapshots, console messages, network logs and other session logs to a file or to the standard output. Defaults to "stdout".
-   */
-  outputMode?: 'file' | 'stdout';
-
-  console?: {
-    /**
-     * The level of console messages to return. Each level includes the messages of more severe levels. Defaults to "info".
-     */
-    level?: 'error' | 'warning' | 'info' | 'debug';
-  },
-
-  network?: {
-    /**
-     * List of origins to allow the browser to request. Default is to allow all. Origins matching both `allowedOrigins` and `blockedOrigins` will be blocked.
-     */
-    allowedOrigins?: string[];
-
-    /**
-     * List of origins to block the browser to request. Origins matching both `allowedOrigins` and `blockedOrigins` will be blocked.
-     */
-    blockedOrigins?: string[];
-  };
-
-  /**
-   * Specify the attribute to use for test ids, defaults to "data-testid".
-   */
-  testIdAttribute?: string;
-
-  timeouts?: {
-    /*
-     * Configures default action timeout: https://playwright.dev/docs/api/class-page#page-set-default-timeout. Defaults to 5000ms.
-     */
-    action?: number;
-
-    /*
-     * Configures default navigation timeout: https://playwright.dev/docs/api/class-page#page-set-default-navigation-timeout. Defaults to 60000ms.
-     */
-    navigation?: number;
-  };
-
-  /**
-   * Whether to allow file uploads from anywhere on the file system.
-   * By default (false), file uploads are restricted to paths within the MCP roots only.
-   */
-  allowUnrestrictedFileAccess?: boolean;
-
-  /**
-   * Specify the language to use for code generation.
-   */
-  codegen?: 'typescript' | 'none';
-}
-```
-
-</details>
-
-<details>
-<summary>Configuration via env</summary>
-
-| Environment |
-|-------------|
-| `PLAYWRIGHT_MCP_ALLOWED_HOSTS` comma-separated list of hosts this server is allowed to serve from. Defaults to the host the server is bound to. Pass '*' to disable the host check. |
-| `PLAYWRIGHT_MCP_ALLOWED_ORIGINS` semicolon-separated list of TRUSTED origins to allow the browser to request. Default is to allow all. Important: *does not* serve as a security boundary and *does not* affect redirects. |
-| `PLAYWRIGHT_MCP_ALLOW_UNRESTRICTED_FILE_ACCESS` allow access to files outside of the workspace roots. Also allows unrestricted access to file:// URLs. By default access to file system is restricted to workspace root directories (or cwd if no roots are configured) only, and navigation to file:// URLs is blocked. |
-| `PLAYWRIGHT_MCP_BLOCKED_ORIGINS` semicolon-separated list of origins to block the browser from requesting. Blocklist is evaluated before allowlist. If used without the allowlist, requests not matching the blocklist are still allowed. Important: *does not* serve as a security boundary and *does not* affect redirects. |
-| `PLAYWRIGHT_MCP_BLOCK_SERVICE_WORKERS` block service workers |
-| `PLAYWRIGHT_MCP_BROWSER` browser or chrome channel to use, possible values: chrome, firefox, webkit, msedge. |
-| `PLAYWRIGHT_MCP_CAPS` comma-separated list of additional capabilities to enable, possible values: vision, pdf. |
-| `PLAYWRIGHT_MCP_CDP_ENDPOINT` CDP endpoint to connect to. |
-| `PLAYWRIGHT_MCP_CDP_HEADERS` CDP headers to send with the connect request, multiple can be specified. |
-| `PLAYWRIGHT_MCP_CDP_TIMEOUT` timeout for the CDP connection. |
-| `PLAYWRIGHT_MCP_CONFIG` path to the configuration file. |
-| `PLAYWRIGHT_MCP_CONSOLE_LEVEL` level of console messages to return: "error", "warning", "info", "debug". Each level includes the messages of more severe levels. |
-| `PLAYWRIGHT_MCP_DEVICE` device to emulate, for example: "iPhone 15" |
-| `PLAYWRIGHT_MCP_EXECUTABLE_PATH` path to the browser executable. |
-| `PLAYWRIGHT_MCP_EXTENSION` Connect to a running browser instance (Edge/Chrome only). Requires the "Playwright MCP Bridge" browser extension to be installed. |
-| `PLAYWRIGHT_MCP_GRANT_PERMISSIONS` List of permissions to grant to the browser context, for example "geolocation", "clipboard-read", "clipboard-write". |
-| `PLAYWRIGHT_MCP_HEADLESS` whether to run browser in headless mode, headless by default. |
-| `PLAYWRIGHT_MCP_IGNORE_HTTPS_ERRORS` ignore https errors |
-| `PLAYWRIGHT_MCP_INIT_PAGE` path to TypeScript file to evaluate on Playwright page object |
-| `PLAYWRIGHT_MCP_INIT_SCRIPT` path to JavaScript file to add as an initialization script. The script will be evaluated in every page before any of the page's scripts. Can be specified multiple times. |
-| `PLAYWRIGHT_MCP_ISOLATED` keep the browser profile in memory, do not save it to disk. |
-| `PLAYWRIGHT_MCP_SANDBOX` whether to enable the browser sandbox. |
-| `PLAYWRIGHT_MCP_OUTPUT_DIR` path to the directory for output files. |
-| `PLAYWRIGHT_MCP_PROXY_BYPASS` comma-separated domains to bypass proxy, for example ".com,chromium.org,.domain.com" |
-| `PLAYWRIGHT_MCP_PROXY_SERVER` specify proxy server, for example "http://myproxy:3128" or "socks5://myproxy:8080" |
-| `PLAYWRIGHT_MCP_SAVE_TRACE` Whether to save the Playwright Trace of the session into the output directory. |
-| `PLAYWRIGHT_MCP_SAVE_VIDEO` Whether to save the video of the session into the output directory. For example "--save-video=800x600" |
-| `PLAYWRIGHT_MCP_SECRETS_FILE` path to a file containing secrets in the dotenv format |
-| `PLAYWRIGHT_MCP_STORAGE_STATE` path to the storage state file for isolated sessions. |
-| `PLAYWRIGHT_MCP_TEST_ID_ATTRIBUTE` specify the attribute to use for test ids, defaults to "data-testid" |
-| `PLAYWRIGHT_MCP_TIMEOUT_ACTION` specify action timeout in milliseconds, defaults to 5000ms |
-| `PLAYWRIGHT_MCP_TIMEOUT_NAVIGATION` specify navigation timeout in milliseconds, defaults to 60000ms |
-| `PLAYWRIGHT_MCP_USER_AGENT` specify user agent string |
-| `PLAYWRIGHT_MCP_USER_DATA_DIR` path to the user data directory. If not specified, a temporary directory will be created. |
-| `PLAYWRIGHT_MCP_VIEWPORT_SIZE` specify browser viewport size in pixels, for example "1280x720" |
-</details>
-
-## Specific tasks
-
-The installed skill includes detailed reference guides for common tasks:
-
-* **Running and Debugging Playwright tests** — run, debug and manage Playwright test suites
-* **Request mocking** — intercept and mock network requests
-* **Running Playwright code** — execute arbitrary Playwright scripts
-* **Browser session management** — manage multiple browser sessions
-* **Storage state (cookies, localStorage)** — persist and restore browser state
-* **Test generation (plan / generate / heal)** — generate Playwright tests from a spec or interactions
-* **Tracing** — record and inspect execution traces
-* **Video recording** — capture browser session videos
-* **Attaching screenshots and videos to pull requests** — upload visual evidence with `gh --attach`
-* **Inspecting element attributes** — get element id, class, or any attribute not visible in the snapshot
+[upstream.json](upstream.json) pins the source revisions. Engine changes live in
+[patches/playwright](patches/playwright); the build applies them before compiling.
+ATML modules live in [src/atml](src/atml). After editing engine files under
+`.upstream/playwright/`, run `npm run patch:update`, then `npm run build`.
+Edit ATML modules directly in `src/atml`. Generated caches are not committed.
+The clean-build check uses a temporary checkout under `.build/`.
+
+[Reference fixtures](tests/fixtures/README.md) verify historical renderer content
+and browser extraction. Separate tests cover exact layout, actionable references,
+live state, event tracking and navigation rules.
+
+This package is private and performs no npm update checks. See [LICENSE](LICENSE)
+and [NOTICE](NOTICE) for licensing and attribution.

@@ -1,31 +1,40 @@
 {
-  "name": "@playwright/cli",
-  "version": "0.1.22",
-  "description": "Playwright CLI",
+  "name": "browser-cli-local",
+  "version": "0.1.22-atml.1",
+  "private": true,
+  "description": "Browser CLI with URL-filtered ATML snapshots and compact element references",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/microsoft/playwright-cli.git"
   },
   "homepage": "https://playwright.dev",
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   },
   "author": {
     "name": "Microsoft Corporation"
   },
   "license": "Apache-2.0",
   "scripts": {
-    "test": "playwright test"
+    "build": "node scripts/prepare-engine.cjs",
+    "test": "playwright test",
+    "test:unit": "playwright test --project=unit",
+    "test:browser": "playwright test tests/browser.spec.ts tests/legacy.browser.spec.ts",
+    "test:types": "node .upstream/playwright/node_modules/typescript/bin/tsc --noEmit -p .upstream/playwright --pretty false",
+    "browser": "node browser.js",
+    "patch:update": "node scripts/update-engine-patch.cjs"
   },
   "devDependencies": {
     "@playwright/test": "1.64.0-alpha-1790635538000",
-    "@types/node": "^25.2.1"
+    "@types/node": "^25.2.1",
+    "typescript": "6.0.2"
   },
   "dependencies": {
     "playwright": "1.64.0-alpha-1790635538000",
-    "playwright-core": "1.64.0-alpha-1790635538000"
+    "playwright-core": "1.64.0-alpha-1790635538000",
+    "smol-toml": "1.9.1"
   },
   "bin": {
-    "playwright-cli": "playwright-cli.js"
+    "browser": "browser.js"
   }
 }

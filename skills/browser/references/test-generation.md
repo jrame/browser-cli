@@ -1,39 +1,39 @@
 # Test generation (plan → generate → heal)
 
-End-to-end workflow for authoring and maintaining Playwright tests with `playwright-cli`. Every `playwright-cli` action emits the equivalent Playwright TypeScript, and that generated code is the raw material for every test. The sections below can be used independently:
+End-to-end workflow for authoring and maintaining Playwright tests with `browser`. Every `browser` action saves the equivalent Playwright JavaScript in a `.js` log, and that generated code is the raw material for every test. The sections below can be used independently:
 
 - **How generation works** — the core mechanic everything else relies on: actions become TypeScript, plus how to add assertions.
 - **Plan** — explore the app, produce a spec file describing what to test.
 - **Generate** — turn a spec into Playwright test files. Update the spec if it's vague or stale.
 - **Heal** — diagnose failing tests, fix the code, reconcile the spec with reality.
 
-Plan / generate / heal lean on the same mechanic: run `npx playwright test --debug=cli` in the background, then `playwright-cli attach tw-XXXX` to drive the paused page interactively. See [playwright-tests.md](playwright-tests.md) for the debug/attach mechanics.
+Plan / generate / heal lean on the same mechanic: run `npx playwright test --debug=cli` in the background, then `browser attach tw-XXXX` to drive the paused page interactively. See [playwright-tests.md](playwright-tests.md) for the debug/attach mechanics.
 
 ---
 
 ## 0. How generation works
 
-Every action you perform with `playwright-cli` generates corresponding Playwright TypeScript code. This code appears in the output and can be copied directly into your test files.
+Every action you perform with `browser` generates corresponding Playwright JavaScript code. Open the `.js` file beside the snapshot, with the same basename, to copy the code into your test files. Compact output omits the code log link; inline and YAML output still show it.
 
 ```bash
 # Start a session
-playwright-cli open https://example.com/login
+browser open https://example.com/login
 
 # Take a snapshot to see elements
-playwright-cli snapshot
-# Output shows: e1 [textbox "Email"], e2 [textbox "Password"], e3 [button "Sign In"]
+browser snapshot
+# Output includes :1 input, :2 input and :3 button with text Sign In
 
 # Fill form fields - generates code automatically
-playwright-cli fill e1 "user@example.com"
-# Ran Playwright code:
+browser fill :1 "user@example.com"
+# The saved .js log contains:
 # await page.getByRole('textbox', { name: 'Email' }).fill('user@example.com');
 
-playwright-cli fill e2 "password123"
-# Ran Playwright code:
+browser fill :2 "password123"
+# The saved .js log contains:
 # await page.getByRole('textbox', { name: 'Password' }).fill('password123');
 
-playwright-cli click e3
-# Ran Playwright code:
+browser click :3
+# The saved .js log contains:
 # await page.getByRole('button', { name: 'Sign In' }).click();
 ```
 
@@ -45,7 +45,7 @@ Collect the generated code into a Playwright test:
 import { test, expect } from '@playwright/test';
 
 test('login flow', async ({ page }) => {
-  // Generated code from playwright-cli session:
+  // Generated code from browser session:
   await page.goto('https://example.com/login');
   await page.getByRole('textbox', { name: 'Email' }).fill('user@example.com');
   await page.getByRole('textbox', { name: 'Password' }).fill('password123');
@@ -73,10 +73,10 @@ await page.locator('#submit-btn').click();
 Take snapshots to understand the page structure before recording actions:
 
 ```bash
-playwright-cli open https://example.com
-playwright-cli snapshot
+browser open https://example.com
+browser snapshot
 # Review the element structure
-playwright-cli click e5
+browser click :5
 ```
 
 ### Add assertions manually
@@ -89,7 +89,7 @@ Generated code captures actions but not assertions. Add expectations in your tes
 - `toBeChecked() / toBeUnchecked()` — checkbox state matches
 - `toMatchAriaSnapshot(snapshot)` — page (or locator) matches a partial accessibility snapshot
 
-Use `playwright-cli generate-locator <target>` to produce the locator expression for the assertion, and the snapshot/eval commands to capture the expected value.
+Use `browser generate-locator <target>` to produce the locator expression for the assertion, and the snapshot/eval commands to capture the expected value.
 
 When asserting text content, make sure that generated locator does not contain text from the element itself. `getByTestId()` or `getByLabel()` usually work well with asserting text. When locator is text-based, prefer `toBeVisible()` instead.
 
@@ -97,19 +97,19 @@ Snapshot to be matched does not have to contain all the information - only captu
 
 ```bash
 # Get a stable locator for an element ref to use in the assertion
-playwright-cli --raw generate-locator e5
+browser --raw generate-locator :5
 # getByRole('button', { name: 'Submit' })
 
 # Capture expected text content for toHaveText
-playwright-cli --raw eval "el => el.textContent" e5
+browser --raw eval "el => el.textContent" :5
 
 # Capture expected input value for toHaveValue/toBeEmpty
-playwright-cli --raw eval "el => el.value" e5
+browser --raw eval "el => el.value" :5
 
 # Capture expected aria snapshot for toMatchAriaSnapshot/toBeChecked
 # (whole page, or use a ref to scope to a region)
-playwright-cli --raw snapshot
-playwright-cli --raw snapshot e5
+browser --raw snapshot
+browser --raw snapshot :5
 ```
 
 ```typescript
@@ -207,17 +207,17 @@ Launch the app via the seed in the background and attach:
 ```bash
 PLAYWRIGHT_HTML_OPEN=never npx playwright test tests/seed.spec.ts --debug=cli
 # wait for "Debugging Instructions" and the session name tw-XXXX
-playwright-cli attach tw-XXXX
+browser attach tw-XXXX
 ```
 
 Resume so the seed runs, then probe the app:
 
 ```bash
-playwright-cli resume                   # resume so that seed test runs fully
-playwright-cli snapshot                 # inventory of interactive elements
-playwright-cli click e5                 # follow a flow
-playwright-cli eval "location.href"     # read URL / state
-playwright-cli show --annotate          # ask the user to point at something
+browser resume                   # resume so that seed test runs fully
+browser snapshot                 # inventory of interactive elements
+browser click :5                 # follow a flow
+browser eval "location.href"     # read URL / state
+browser show --annotate          # ask the user to point at something
 ```
 
 Map out:
@@ -228,7 +228,7 @@ Map out:
 - Persistence: reload, local/session storage, URL fragments.
 - Navigation: which controls change the URL, back/forward behaviour.
 
-**Important**: Do not just open the app url with playwright-cli, always go through the test to capture any custom setup done there.
+**Important**: Do not just open the app url with browser, always go through the test to capture any custom setup done there.
 **Important**: Stop the background test when done exploring.
 
 ### 1.4 Write the spec file
@@ -294,21 +294,21 @@ For each target scenario, in sequence (never in parallel — scenarios share the
 
 ```bash
 PLAYWRIGHT_HTML_OPEN=never npx playwright test <seed-file> --debug=cli   # background
-playwright-cli attach tw-XXXX
+browser attach tw-XXXX
 # resume
 ```
 
-**Do not** just open the app url with playwright-cli, always go through the test to capture any custom setup done there.
+**Do not** just open the app url with browser, always go through the test to capture any custom setup done there.
 
-Walk the scenario's `Steps:` one by one with `playwright-cli`, treating the spec as the plan and the live app as the source of truth. If a step is vague ("click the button" — which button?), references an element that no longer exists, or contradicts the app's actual behaviour, use your judgement: update the spec to match what the app really does, then keep going. Editing the spec mid-generation is expected.
+Walk the scenario's `Steps:` one by one with `browser`, treating the spec as the plan and the live app as the source of truth. If a step is vague ("click the button" — which button?), references an element that no longer exists, or contradicts the app's actual behaviour, use your judgement: update the spec to match what the app really does, then keep going. Editing the spec mid-generation is expected.
 
 Every action prints the equivalent Playwright TypeScript (see [How generation works](#0-how-generation-works)):
 
 ```bash
-playwright-cli snapshot                         # find refs
-playwright-cli fill e3 "John Doe"               # -> page.getByRole('textbox', {...}).fill(...)
-playwright-cli press Enter
-playwright-cli click e7
+browser snapshot                         # find refs
+browser fill :3 "John Doe"               # -> page.getByRole('textbox', {...}).fill(...)
+browser press Enter
+browser click :7
 ```
 
 For each `- expect:` bullet, add an explicit assertion. See [How generation works](#0-how-generation-works) for details.
@@ -382,21 +382,21 @@ Run the single failing test in debug mode in the background, then attach:
 ```bash
 PLAYWRIGHT_HTML_OPEN=never npx playwright test tests/<group>/<scenario>.spec.ts:<line> --debug=cli
 # wait for "Debugging Instructions" and the tw-XXXX session name
-playwright-cli attach tw-XXXX
+browser attach tw-XXXX
 ```
 
 The test is paused at the start. Step forward or run to until just before the failing action or assertion, then diagnose:
 
 ```bash
-playwright-cli snapshot                # did the element change / move / rename?
-playwright-cli console                 # app-side errors?
-playwright-cli requests                # failed request? wrong payload?
-playwright-cli show --annotate         # ask the user to point somewhere
+browser snapshot                # did the element change / move / rename?
+browser console                 # app-side errors?
+browser requests                # failed request? wrong payload?
+browser show --annotate         # ask the user to point somewhere
 ```
 
 Common causes: selector drift, new wrapper element, label/ARIA rename, timing (transition, async load), assertion text updated in the app, test data leaking between runs.
 
-Rehearse the corrected interaction with `playwright-cli` — the generated code in the output is what you paste back into the test.
+Rehearse the corrected interaction with `browser` — open the linked `.js` log and paste its generated code back into the test.
 
 ### 3.3 Apply the fix
 

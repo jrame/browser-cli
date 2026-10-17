@@ -18,6 +18,7 @@ import fs from 'fs';
 import path from 'path';
 import { spawn } from 'child_process';
 import { test, expect } from '@playwright/test';
+import { runCli as runBrowser } from './helpers';
 
 type CliResult = {
   output: string;
@@ -26,7 +27,9 @@ type CliResult = {
 };
 
 async function runCli(args: string[], env: Record<string, string> = {}): Promise<CliResult> {
-  const cliPath = path.join(__dirname, '../playwright-cli.js');
+  const cliPath = path.join(__dirname, '../browser.js');
+  fs.mkdirSync(path.join(test.info().outputPath(), '.config', 'browser-cli'), { recursive: true });
+  fs.writeFileSync(path.join(test.info().outputPath(), '.config', 'browser-cli', 'cli.config.json'), JSON.stringify({ browser: { browserName: 'chromium', launchOptions: { headless: true } } }));
 
   return new Promise<CliResult>((resolve, reject) => {
     let stdout = '';
@@ -36,6 +39,8 @@ async function runCli(args: string[], env: Record<string, string> = {}): Promise
       env: {
         ...process.env,
         PLAYWRIGHT_CLI_INSTALLATION_FOR_TEST: test.info().outputPath(),
+        PWTEST_DAEMON_SESSION_DIR: test.info().outputPath('sessions'),
+        PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1',
         ...env,
       },
       cwd: test.info().outputPath(),
@@ -61,8 +66,24 @@ async function runCli(args: string[], env: Record<string, string> = {}): Promise
   });
 }
 
+test('install creates the browser-cli config directory and ignores its logs', async ({}, info) => {
+  const cwd = info.outputPath();
+  fs.mkdirSync(path.join(cwd, '.git'), { recursive: true });
+  fs.writeFileSync(path.join(cwd, '.gitignore'), 'node_modules/');
+  expect(await runBrowser(cwd, ['install'])).toEqual(expect.objectContaining({ exitCode: 0 }));
+  expect(fs.statSync(path.join(cwd, '.config', 'browser-cli')).isDirectory()).toBe(true);
+  const ignored = fs.readFileSync(path.join(cwd, '.gitignore'), 'utf8');
+  expect(ignored).toContain('\n.logs/browser-cli/\n');
+  expect(fs.existsSync(path.join(cwd, '.playwright'))).toBe(false);
+  expect(await runBrowser(cwd, ['install'])).toEqual(expect.objectContaining({ exitCode: 0 }));
+  expect(fs.readFileSync(path.join(cwd, '.gitignore'), 'utf8')).toBe(ignored);
+  fs.writeFileSync(path.join(cwd, '.gitignore'), '/.logs/\n');
+  expect(await runBrowser(cwd, ['install'])).toEqual(expect.objectContaining({ exitCode: 0 }));
+  expect(fs.readFileSync(path.join(cwd, '.gitignore'), 'utf8')).toBe('/.logs/\n');
+});
+
 test('open data URL', async ({}) => {
-  expect(await runCli(['open', 'data:text/html,hello', '--persistent'])).toEqual(expect.objectContaining({
+  expect(await runCli(['open', 'data:text/html,hello', '--persistent', '--inline'])).toEqual(expect.objectContaining({
     output: expect.stringContaining('hello'),
     exitCode: 0,
   }));
@@ -78,7 +99,7 @@ test('warns when installed skill is out of date', async ({}) => {
     exitCode: 0,
   }));
 
-  const skillFile = path.join(test.info().outputPath(), '.claude', 'skills', 'playwright-cli', 'SKILL.md');
+  const skillFile = path.join(test.info().outputPath(), '.claude', 'skills', 'browser', 'SKILL.md');
   fs.appendFileSync(skillFile, 'x');
 
   const env = { CI: '', NO_UPDATE_NOTIFIER: '' };
@@ -96,43 +117,10 @@ test('does not warn when installed skill only differs in line endings', async ({
     exitCode: 0,
   }));
 
-  const skillFile = path.join(test.info().outputPath(), '.claude', 'skills', 'playwright-cli', 'SKILL.md');
-  fs.writeFileSync(skillFile, fs.readFileSync(skillFile, 'utf8').replace(/\n/g, '\r\n'));
+  const skillFile = path.join(test.info().outputPath(), '.claude', 'skills', 'browser', 'SKILL.md');
+  fs.writeFileSync(skillFile, fs.readFileSync(skillFile, 'utf8').replace(/\r?\n/g, '\r\n'));
 
   expect(await runCli(['--help'], { CI: '', NO_UPDATE_NOTIFIER: '' })).toEqual(expect.objectContaining({
     error: expect.not.stringContaining('does not match the tool version'),
   }));
-});
-
-test('caches the update check in the default registry directory', async ({}) => {
-  // Redirect the home/cache directories so the real user cache is untouched, and
-  // leave PLAYWRIGHT_CLI_INSTALLATION_FOR_TEST empty so the default path is used.
-  const home = test.info().outputPath('home');
-  fs.mkdirSync(home, { recursive: true });
-  const env = {
-    CI: '',
-    NO_UPDATE_NOTIFIER: '',
-    PLAYWRIGHT_CLI_INSTALLATION_FOR_TEST: '',
-    HOME: home,
-    USERPROFILE: home,
-    XDG_CACHE_HOME: path.join(home, '.cache'),
-    LOCALAPPDATA: path.join(home, 'AppData', 'Local'),
-  };
-
-  expect(await runCli(['--version'], env)).toEqual(expect.objectContaining({ exitCode: 0 }));
-
-  const found: string[] = [];
-  const walk = (dir: string) => {
-    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-      const full = path.join(dir, entry.name);
-      if (entry.isDirectory())
-        walk(full);
-      else if (entry.name === 'cli-update-check.json')
-        found.push(full);
-    }
-  };
-  walk(home);
-
-  expect(found).toHaveLength(1);
-  expect(JSON.parse(fs.readFileSync(found[0], 'utf8')).lastCheck).toEqual(expect.any(Number));
 });
