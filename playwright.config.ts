@@ -23,7 +23,7 @@ export default defineConfig({
   workers: 2,
   timeout: 90000,
   projects: [
-    { name: 'unit', testMatch: /(?:config|render|legacy\.render|command-chain)\.spec\.ts/ },
+    { name: 'unit', testMatch: /(?:build|config|render|legacy\.render|command-chain)\.spec\.ts/ },
     { name: 'chromium', testMatch: /(?:browser|events|integration)\.spec\.ts/, use: { browserName: 'chromium' } },
     { name: 'firefox', testMatch: /(?:browser|events)\.spec\.ts/, use: { browserName: 'firefox' } },
   ],
