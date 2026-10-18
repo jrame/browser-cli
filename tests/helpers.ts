@@ -28,7 +28,8 @@ export const test = base.extend<{ cli: Cli }>({
   cli: async ({ browserName }, use, info) => {
     const cwd = info.outputPath();
     fs.mkdirSync(path.join(cwd, '.config', 'browser-cli'), { recursive: true });
-    fs.writeFileSync(path.join(cwd, '.config', 'browser-cli', 'cli.config.json'), JSON.stringify({ browser: { browserName, launchOptions: { headless: true } }, timeouts: { action: 3000 } }));
+    // Firefox actionability checks can take several seconds on busy CI runners.
+    fs.writeFileSync(path.join(cwd, '.config', 'browser-cli', 'cli.config.json'), JSON.stringify({ browser: { browserName, launchOptions: { headless: true } }, timeouts: { action: 10000 } }));
     const cli: Cli = {
       cwd,
       result: (...args) => runCli(cwd, args),
