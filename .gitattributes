@@ -1,2 +1,3 @@
 # Patches must match the LF-only pinned Playwright sources on every platform.
 *.patch text eol=lf
+*.sh text eol=lf

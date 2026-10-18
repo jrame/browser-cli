@@ -17,6 +17,8 @@
   "license": "Apache-2.0",
   "scripts": {
     "build": "node scripts/prepare-engine.cjs",
+    "package:release": "node scripts/package-release.cjs",
+    "verify:release": "node scripts/verify-release.cjs",
     "test": "playwright test",
     "test:unit": "playwright test --project=unit",
     "test:browser": "playwright test tests/browser.spec.ts tests/legacy.browser.spec.ts",

@@ -1,0 +1,66 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-22.04]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Check release version
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: node -e 'if (process.env.GITHUB_REF_NAME !== "v" + require("./package.json").version) throw new Error("Tag must match package.json version")'
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test:unit
+      - name: Build release archive and checksum
+        run: npm run package:release
+      - name: Install browsers for archive verification
+        run: node .artifacts/playwright-core/cli.js install --with-deps chromium firefox
+      - name: Verify with minimum supported Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '20'
+      - name: Verify extracted archive and installed CLI outside the checkout
+        run: npm run verify:release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: browser-${{ runner.os }}
+          if-no-files-found: error
+          path: dist/*
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          flags=()
+          if [[ "$RELEASE_TAG" == *-* ]]; then flags+=(--prerelease); fi
+          gh release create "$RELEASE_TAG" dist/* --verify-tag --generate-notes --title "$RELEASE_TAG" "${flags[@]}"

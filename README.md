@@ -6,6 +6,59 @@ The installed command is **browser**.
 
 ## Install
 
+### Windows and WSL/Linux releases
+
+Download `browser-windows.zip` or `browser-linux.tar.gz` and its `.sha256` file
+from [Releases](https://github.com/jrame/browser-cli/releases). These light
+archives contain the compiled engine and runtime dependencies. Install
+**Node.js 20 or newer** separately (Linux Node.js inside WSL). Git, npm and
+compilation are not needed to install a release.
+
+Windows, from the directory containing the downloaded files:
+
+```powershell
+$expected = ((Get-Content .\browser-windows.zip.sha256) -split '\s+')[0]
+if ((Get-FileHash .\browser-windows.zip -Algorithm SHA256).Hash -ne $expected) { throw 'Checksum mismatch' }
+Expand-Archive .\browser-windows.zip -DestinationPath .\browser-release
+cd .\browser-release\browser-windows
+.\install.ps1
+$env:Path = "$env:USERPROFILE\.local\bin;$env:Path"
+browser --help
+```
+
+WSL/Linux, from the directory containing the downloaded files:
+
+```sh
+sha256sum -c browser-linux.tar.gz.sha256
+tar -xzf browser-linux.tar.gz
+cd browser-linux
+sh install.sh
+export PATH="$HOME/.local/bin:$PATH"
+browser --help
+```
+
+Installers copy the application to `%LOCALAPPDATA%\browser-cli` on Windows or
+`~/.local/share/browser-cli` on Linux, and create a launcher in `~/.local/bin`.
+Add this bin directory to your Windows **user PATH** or your WSL shell profile
+to keep the command available in new terminals. Installers do not change PATH
+or shell profiles. The extracted archive can be deleted after installation.
+
+Chromium and Firefox are downloaded by default. For an offline CLI install or
+to choose browsers later, use `.\install.ps1 -SkipBrowsers` or
+`sh install.sh --skip-browsers`, then run `browser install-browser chromium`
+and/or `browser install-browser firefox` when connected. Linux may also need
+system libraries: run `browser install-browser --with-deps chromium` (and/or
+`firefox`); installing system libraries may require sudo. WSL uses Linux
+browsers; headed sessions require a graphical environment such as WSLg.
+
+Custom locations: `.\install.ps1 -InstallDir C:\Tools\browser-cli -BinDir C:\Tools\bin`
+or `sh install.sh --install-dir /path/to/browser-cli --bin-dir /path/to/bin`.
+Close active sessions with `browser close-all` before installing a newer
+release into the same location. Configuration and browser caches are separate
+from the installed application.
+
+### From source
+
 Requires Node.js 20 or newer, npm and Git. The first build downloads pinned
 Playwright sources and build dependencies.
 
@@ -167,6 +220,25 @@ The policy loads at session startup; restart with `browser close` then
 policy file; `--atml-config` selects snapshot filters only.
 
 ## Development
+
+To create a light release after building the engine:
+
+```powershell
+npm run package:release
+npm run verify:release
+```
+
+Packaging creates `dist/browser-windows.zip` on Windows or
+`dist/browser-linux.tar.gz` on Linux, with a separate `.sha256` checksum.
+Verification extracts and installs the archive outside the checkout, removes
+the extracted files, then checks the installed launcher, Chromium/Firefox,
+command chaining and TOML filters. Install those browsers before verifying.
+
+The **Release** GitHub Actions workflow builds and verifies both archives.
+Run it manually to download test artifacts without publishing, or push a
+`v<package.json version>` tag to publish the verified archives in GitHub
+Releases. Tags containing a prerelease suffix create prereleases. npm and
+GitHub Packages are not used.
 
 ```powershell
 npm test
