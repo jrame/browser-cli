@@ -1,6 +1,6 @@
 {
   "name": "browser-cli-local",
-  "version": "0.1.22-atml.1",
+  "version": "0.1.22-atml.2",
   "private": true,
   "description": "Browser CLI with URL-filtered ATML snapshots and compact element references",
   "repository": {
