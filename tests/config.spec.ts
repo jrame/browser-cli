@@ -3,8 +3,15 @@ import fs from 'fs';
 import path from 'path';
 import { loadAtmlConfig, navigationUrlAllowed, normalizeMatchUrl, parseAtmlConfig, resolveAtmlConfig, urlMatches } from '../src/atml/config';
 
-test('navigation allowlist is optional, canonicalizes URLs and defaults to deny when configured', () => {
-  expect(navigationUrlAllowed('https://anywhere.test/', parseAtmlConfig('').allowed_urls)).toBe(true);
+test('navigation allowlist canonicalizes URLs and denies access by default', () => {
+  for (const source of ['', '[atml]\nkeep_attrs = []', '[navigation]', '# allowed_urls = ["https://example.com/**"]', '[navigation]\n# allowed_urls = ["https://example.com/**"]', '[navigation]\nallowed_urls = []']) {
+    const config = parseAtmlConfig(source);
+    expect(config.allowed_urls).toEqual([]);
+    for (const url of ['https://anywhere.test/', 'http://localhost/', 'data:text/html,hello', 'file:///tmp/page.html'])
+      expect(navigationUrlAllowed(url, config.allowed_urls), source + ': ' + url).toBe(false);
+    expect(navigationUrlAllowed('about:blank', config.allowed_urls)).toBe(true);
+  }
+  expect(navigationUrlAllowed('https://anywhere.test/', undefined)).toBe(false);
   const { allowed_urls } = parseAtmlConfig(`[navigation]\nallowed_urls = ["HTTPS://EXAMPLE.COM:443/app/**", "https://other.test/one/*"]`);
   expect(allowed_urls).toEqual(['https://example.com/app/**', 'https://other.test/one/*']);
   for (const url of ['https://example.com/app/one/two?q=1#top', 'https://other.test/one/two'])
@@ -72,8 +79,10 @@ test('configuration discovery prefers browser-cli TOML and supports explicit pat
   fs.mkdirSync(directory, { recursive: true });
   fs.writeFileSync(path.join(directory, 'config.toml'), '[atml]\nkeep_tags = ["article"]');
   expect(loadAtmlConfig(cwd).keep_tags).toEqual(['article']);
+  expect(loadAtmlConfig(cwd).configPath).toBe(path.join(directory, 'config.toml'));
   fs.writeFileSync(path.join(cwd, 'other.toml'), '[atml]\nkeep_attrs = ["data-other"]');
   expect(loadAtmlConfig(cwd, 'other.toml').keep_attrs).toEqual(['data-other']);
+  expect(loadAtmlConfig(cwd, 'other.toml').configPath).toBe(path.join(cwd, 'other.toml'));
   expect(() => loadAtmlConfig(cwd, 'missing.toml')).toThrow(/not found/);
 });
 

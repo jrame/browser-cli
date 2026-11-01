@@ -1,0 +1,20 @@
+<!doctype html>
+<meta charset="utf-8">
+<style>
+  #editor { position: relative; width: 578px; height: 300px; background: #eee; }
+  #technical { position: absolute; width: 0; height: 0; padding: 0; border: 0; }
+  #offscreen { position: absolute; top: 1600px; }
+  #covered-container { position: relative; width: 250px; height: 40px; }
+  #cover { position: absolute; inset: 0; background: silver; z-index: 1; }
+</style>
+<input id="ordinary" aria-label="Ordinary input">
+<select id="ordinary-select"><option value="a">A</option><option value="b">B</option></select>
+<div id="editor">Visible editor content<textarea id="technical" aria-label="Editor input" tabindex="0"></textarea></div>
+<input id="display-hidden" style="display: none">
+<input id="visibility-hidden" style="visibility: hidden">
+<input id="hidden-type" type="hidden">
+<input id="disabled" disabled>
+<fieldset disabled><input id="fieldset-disabled"></fieldset>
+<div inert><input id="inert-input"></div>
+<input id="offscreen" aria-label="Offscreen input">
+<div id="covered-container"><input id="covered" aria-label="Covered input"><div id="cover">Temporary cover</div></div>

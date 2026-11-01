@@ -6,23 +6,23 @@ Intercept, mock, modify, and block network requests.
 
 ```bash
 # Mock with custom status
-browser route "**/*.jpg" --status=404
+browser route default "**/*.jpg" --status=404
 
 # Mock with JSON body
-browser route "**/api/users" --body='[{"id":1,"name":"Alice"}]' --content-type=application/json
+browser route default "**/api/users" --body='[{"id":1,"name":"Alice"}]' --content-type=application/json
 
 # Mock with custom headers
-browser route "**/api/data" --body='{"ok":true}' --header="X-Custom: value"
+browser route default "**/api/data" --body='{"ok":true}' --header="X-Custom: value"
 
 # Remove headers from requests
-browser route "**/*" --remove-header=cookie,authorization
+browser route default "**/*" --remove-header=cookie,authorization
 
 # List active routes
-browser route-list
+browser route-list default
 
 # Remove a route or all routes
-browser unroute "**/*.jpg"
-browser unroute
+browser unroute default "**/*.jpg"
+browser unroute default
 ```
 
 ## URL Patterns
@@ -41,7 +41,7 @@ For conditional responses, request body inspection, response modification, or de
 ### Conditional Response Based on Request
 
 ```bash
-browser run-code "async page => {
+browser run-code default "async page => {
   await page.route('**/api/login', route => {
     const body = route.request().postDataJSON();
     if (body.username === 'admin') {
@@ -56,7 +56,7 @@ browser run-code "async page => {
 ### Modify Real Response
 
 ```bash
-browser run-code "async page => {
+browser run-code default "async page => {
   await page.route('**/api/user', async route => {
     const response = await route.fetch();
     const json = await response.json();
@@ -69,7 +69,7 @@ browser run-code "async page => {
 ### Simulate Network Failures
 
 ```bash
-browser run-code "async page => {
+browser run-code default "async page => {
   await page.route('**/api/offline', route => route.abort('internetdisconnected'));
 }"
 # Options: connectionrefused, timedout, connectionreset, internetdisconnected
@@ -78,7 +78,7 @@ browser run-code "async page => {
 ### Delayed Response
 
 ```bash
-browser run-code "async page => {
+browser run-code default "async page => {
   await page.route('**/api/slow', async route => {
     await new Promise(r => setTimeout(r, 3000));
     route.fulfill({ body: JSON.stringify({ data: 'loaded' }) });

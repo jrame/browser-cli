@@ -7,7 +7,7 @@ End-to-end workflow for authoring and maintaining Playwright tests with `browser
 - **Generate** — turn a spec into Playwright test files. Update the spec if it's vague or stale.
 - **Heal** — diagnose failing tests, fix the code, reconcile the spec with reality.
 
-Plan / generate / heal lean on the same mechanic: run `npx playwright test --debug=cli` in the background, then `browser attach tw-XXXX` to drive the paused page interactively. See [playwright-tests.md](playwright-tests.md) for the debug/attach mechanics.
+Plan / generate / heal lean on the same mechanic: run `npx playwright test --debug=cli` in the background, then `browser attach default tw-XXXX` to drive the paused page interactively. See [playwright-tests.md](playwright-tests.md) for the debug/attach mechanics.
 
 ---
 
@@ -17,22 +17,22 @@ Every action you perform with `browser` generates corresponding Playwright JavaS
 
 ```bash
 # Start a session
-browser open https://example.com/login
+browser open default https://example.com/login
 
 # Take a snapshot to see elements
-browser snapshot
+browser snapshot default
 # Output includes :1 input, :2 input and :3 button with text Sign In
 
 # Fill form fields - generates code automatically
-browser fill :1 "user@example.com"
+browser fill default :1 "user@example.com"
 # The saved .js log contains:
 # await page.getByRole('textbox', { name: 'Email' }).fill('user@example.com');
 
-browser fill :2 "password123"
+browser fill default :2 "password123"
 # The saved .js log contains:
 # await page.getByRole('textbox', { name: 'Password' }).fill('password123');
 
-browser click :3
+browser click default :3
 # The saved .js log contains:
 # await page.getByRole('button', { name: 'Sign In' }).click();
 ```
@@ -73,10 +73,10 @@ await page.locator('#submit-btn').click();
 Take snapshots to understand the page structure before recording actions:
 
 ```bash
-browser open https://example.com
-browser snapshot
+browser open default https://example.com
+browser snapshot default
 # Review the element structure
-browser click :5
+browser click default :5
 ```
 
 ### Add assertions manually
@@ -89,7 +89,7 @@ Generated code captures actions but not assertions. Add expectations in your tes
 - `toBeChecked() / toBeUnchecked()` — checkbox state matches
 - `toMatchAriaSnapshot(snapshot)` — page (or locator) matches a partial accessibility snapshot
 
-Use `browser generate-locator <target>` to produce the locator expression for the assertion, and the snapshot/eval commands to capture the expected value.
+Use `browser generate-locator default <target>` to produce the locator expression for the assertion, and the snapshot/eval commands to capture the expected value.
 
 When asserting text content, make sure that generated locator does not contain text from the element itself. `getByTestId()` or `getByLabel()` usually work well with asserting text. When locator is text-based, prefer `toBeVisible()` instead.
 
@@ -97,19 +97,19 @@ Snapshot to be matched does not have to contain all the information - only captu
 
 ```bash
 # Get a stable locator for an element ref to use in the assertion
-browser --raw generate-locator :5
+browser --raw generate-locator default :5
 # getByRole('button', { name: 'Submit' })
 
 # Capture expected text content for toHaveText
-browser --raw eval "el => el.textContent" :5
+browser --raw eval default "el => el.textContent" :5
 
 # Capture expected input value for toHaveValue/toBeEmpty
-browser --raw eval "el => el.value" :5
+browser --raw eval default "el => el.value" :5
 
 # Capture expected aria snapshot for toMatchAriaSnapshot/toBeChecked
 # (whole page, or use a ref to scope to a region)
-browser --raw snapshot
-browser --raw snapshot :5
+browser --raw snapshot default
+browser --raw snapshot default :5
 ```
 
 ```typescript
@@ -207,17 +207,17 @@ Launch the app via the seed in the background and attach:
 ```bash
 PLAYWRIGHT_HTML_OPEN=never npx playwright test tests/seed.spec.ts --debug=cli
 # wait for "Debugging Instructions" and the session name tw-XXXX
-browser attach tw-XXXX
+browser attach default tw-XXXX
 ```
 
 Resume so the seed runs, then probe the app:
 
 ```bash
-browser resume                   # resume so that seed test runs fully
-browser snapshot                 # inventory of interactive elements
-browser click :5                 # follow a flow
-browser eval "location.href"     # read URL / state
-browser show --annotate          # ask the user to point at something
+browser resume default                   # resume so that seed test runs fully
+browser snapshot default                 # inventory of interactive elements
+browser click default :5                 # follow a flow
+browser eval default "location.href"     # read URL / state
+browser show default --annotate          # ask the user to point at something
 ```
 
 Map out:
@@ -294,7 +294,7 @@ For each target scenario, in sequence (never in parallel — scenarios share the
 
 ```bash
 PLAYWRIGHT_HTML_OPEN=never npx playwright test <seed-file> --debug=cli   # background
-browser attach tw-XXXX
+browser attach default tw-XXXX
 # resume
 ```
 
@@ -305,10 +305,10 @@ Walk the scenario's `Steps:` one by one with `browser`, treating the spec as the
 Every action prints the equivalent Playwright TypeScript (see [How generation works](#0-how-generation-works)):
 
 ```bash
-browser snapshot                         # find refs
-browser fill :3 "John Doe"               # -> page.getByRole('textbox', {...}).fill(...)
-browser press Enter
-browser click :7
+browser snapshot default                         # find refs
+browser fill default :3 "John Doe"               # -> page.getByRole('textbox', {...}).fill(...)
+browser press default Enter
+browser click default :7
 ```
 
 For each `- expect:` bullet, add an explicit assertion. See [How generation works](#0-how-generation-works) for details.
@@ -382,16 +382,16 @@ Run the single failing test in debug mode in the background, then attach:
 ```bash
 PLAYWRIGHT_HTML_OPEN=never npx playwright test tests/<group>/<scenario>.spec.ts:<line> --debug=cli
 # wait for "Debugging Instructions" and the tw-XXXX session name
-browser attach tw-XXXX
+browser attach default tw-XXXX
 ```
 
 The test is paused at the start. Step forward or run to until just before the failing action or assertion, then diagnose:
 
 ```bash
-browser snapshot                # did the element change / move / rename?
-browser console                 # app-side errors?
-browser requests                # failed request? wrong payload?
-browser show --annotate         # ask the user to point somewhere
+browser snapshot default                # did the element change / move / rename?
+browser console default                 # app-side errors?
+browser requests default                # failed request? wrong payload?
+browser show default --annotate         # ask the user to point somewhere
 ```
 
 Common causes: selector drift, new wrapper element, label/ARIA rename, timing (transition, async load), assertion text updated in the app, test data leaking between runs.

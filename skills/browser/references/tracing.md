@@ -6,15 +6,15 @@ Capture detailed execution traces for debugging and analysis. Traces include DOM
 
 ```bash
 # Start trace recording
-browser tracing-start
+browser tracing-start default
 
 # Perform actions
-browser open https://example.com
-browser click :1
-browser fill :2 "test"
+browser open default https://example.com
+browser click default :1
+browser fill default :2 "test"
 
 # Stop trace recording
-browser tracing-stop
+browser tracing-stop default
 ```
 
 ## Trace Output Files
@@ -64,22 +64,22 @@ When you start tracing, Playwright creates a `.logs/browser-cli/traces/` directo
 ### Debugging Failed Actions
 
 ```bash
-browser tracing-start
-browser open https://app.example.com
+browser tracing-start default
+browser open default https://app.example.com
 
 # This click fails - why?
-browser click :5
+browser click default :5
 
-browser tracing-stop
+browser tracing-stop default
 # Open trace to see DOM state when click was attempted
 ```
 
 ### Analyzing Performance
 
 ```bash
-browser tracing-start
-browser open https://slow-site.com
-browser tracing-stop
+browser tracing-start default
+browser open default https://slow-site.com
+browser tracing-stop default
 
 # View network waterfall to identify slow resources
 ```
@@ -88,15 +88,15 @@ browser tracing-stop
 
 ```bash
 # Record a complete user flow for documentation
-browser tracing-start
+browser tracing-start default
 
-browser open https://app.example.com/checkout
-browser fill :1 "4111111111111111"
-browser fill :2 "12/25"
-browser fill :3 "123"
-browser click :4
+browser open default https://app.example.com/checkout
+browser fill default :1 "4111111111111111"
+browser fill default :2 "12/25"
+browser fill default :3 "123"
+browser click default :4
 
-browser tracing-stop
+browser tracing-stop default
 # Trace shows exact sequence of events
 ```
 
@@ -117,10 +117,10 @@ browser tracing-stop
 
 ```bash
 # Trace the entire flow, not just the failing step
-browser tracing-start
-browser open https://example.com
+browser tracing-start default
+browser open default https://example.com
 # ... all steps leading to the issue ...
-browser tracing-stop
+browser tracing-stop default
 ```
 
 ### 2. Clean Up Old Traces

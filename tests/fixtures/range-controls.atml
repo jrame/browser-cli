@@ -1,0 +1,20 @@
+id=complete label=Result role=progressbar valuemax=100 valuemin=0 valuenow=100
+label=Fuel role=meter valuemax=10.5 valuemin=-5 valuenow=2.5 valuetext="2.5 liters"
+:volume role=slider valuemax=100 valuemin=0 valuenow=20 valuetext=Quiet
+:quantity role=spinbutton valuemax=9 valuemin=1 valuenow=3 valuetext="3 items"
+id=pending role=progressbar valuemax=100 valuemin=0 valuetext=Loading
+role=progressbar
+:unbounded role=spinbutton valuenow=-1
+:textual role=slider valuetext="Unknown duration"
+id=inconsistent role=progressbar valuemax=0 valuemin=100 valuenow=150
+id=malformed role=meter valuemax=NaN valuemin valuenow=unknown valuetext=Unavailable
+id=zero role=progressbar valuemax=0 valuemin=0 valuenow=0
+role=progressbar value=0.5 valuemax=100 valuemin=0 valuenow=50
+id=unrelated role=status
+  : Visible status
+id=excluded role=progressbar valuenow=7
+id=custom role=progressbar valuenow=8
+:update button
+  : Update
+:reset button
+  : Reset

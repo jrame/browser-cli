@@ -19,7 +19,7 @@ async function main() {
   const optionEnd = argv.indexOf('--');
   const flags = optionEnd === -1 ? argv : argv.slice(0, optionEnd);
   if ((!argv.length || flags.some(arg => arg === '--help' || arg === '-h')) && !flags.some(arg => /^--json(?:=|$)/.test(arg)))
-    process.stdout.write('Command chaining: browser -s=ff type "Buy groceries" --then press Enter\nRuns in order, inherits the session, stops on failure, and emits one final automatic snapshot. Other flags apply per command.\n\n');
+    process.stdout.write('Command chaining: browser type ff "Buy groceries" --then press Enter\nCommands after --then inherit the session. Runs in order, stops on failure, and emits one final automatic snapshot. Flags apply per command.\n\n');
   await program({ embedderVersion: require('./package.json').version });
 }
 

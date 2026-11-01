@@ -1,11 +1,9 @@
-import fs from 'fs';
-import path from 'path';
 import http from 'http';
 import { installAtmlEventTracking } from '../src/atml/events';
 import { test, expect } from './helpers';
 
 test('startup listeners keep generic nodes actionable without changing references or filters', async ({ cli }) => {
-  fs.writeFileSync(path.join(cli.cwd, '.config', 'browser-cli', 'config.toml'), '[atml]\nremove_selectors = [".excluded"]\n');
+  cli.configure('[atml]\nremove_selectors = [".excluded"]\n');
   await cli.open(`<div>Registered</div><span data-testid="action">Test ID</span>
     <section id="custom">ID</section><div>Animation only</div><div class="excluded">Excluded</div>
     <div id="shadow"></div><div data-has-listener="change,animationend">Authored</div>
@@ -18,7 +16,7 @@ test('startup listeners keep generic nodes actionable without changing reference
       root.innerHTML = '<span>Shadow action</span>';
       root.firstChild.addEventListener('keydown', () => {});
     </script>`);
-  const snapshot = JSON.parse(await cli.run('snapshot', '--inline', '--json')).snapshot;
+  const snapshot = JSON.parse(await cli.run('snapshot', 'default', '--inline', '--json')).snapshot;
   expect(snapshot).toMatch(/(:\d+) on:click\n  : Registered/);
   const action = snapshot.match(/(:\d+) on:click data-testid=action\n  : Test ID/)![1];
   expect(snapshot).toContain(':custom on:click\n  : ID');
@@ -27,13 +25,13 @@ test('startup listeners keep generic nodes actionable without changing reference
   expect(snapshot).not.toContain('on:animationend');
   expect(snapshot).not.toContain('Excluded');
   const ref = snapshot.match(/(:\d+) on:click\n  : Registered/)![1];
-  expect(await cli.run('snapshot', '--inline')).toContain(`${ref} on:click\n  : Registered`);
-  await cli.run('click', ref);
-  expect(await cli.run('snapshot', ref, '--inline')).toContain(`${ref} on:click\n  : Clicked`);
-  await cli.run('snapshot', '--inline');
-  await cli.run('click', action);
-  expect(await cli.run('snapshot', '--inline')).toContain(`${action} on:click data-testid=action\n  : Clicked`);
-  expect(await cli.run('snapshot', '--format=yaml', '--inline')).toContain('[ref=');
+  expect(await cli.run('snapshot', 'default', '--inline')).toContain(`${ref} on:click\n  : Registered`);
+  await cli.run('click', 'default', ref);
+  expect(await cli.run('snapshot', 'default', ref, '--inline')).toContain(`${ref} on:click\n  : Clicked`);
+  await cli.run('snapshot', 'default', '--inline');
+  await cli.run('click', 'default', action);
+  expect(await cli.run('snapshot', 'default', '--inline')).toContain(`${action} on:click data-testid=action\n  : Clicked`);
+  expect(await cli.run('snapshot', 'default', '--format=yaml', '--inline')).toContain('[ref=');
 });
 
 test('removal, capture identity, duplicate options and once clear only the matching hints', async ({ cli }) => {
@@ -45,19 +43,19 @@ test('removal, capture identity, duplicate options and once clear only the match
     target.addEventListener('keydown', fn);
     document.querySelector('#once').addEventListener('click', () => {}, {once:true});
   </script>`);
-  expect(await cli.run('snapshot', '--inline')).toContain(':target on:click on:keydown');
-  await cli.run('eval', '() => { target.removeEventListener("click", fn, true); target.click(); }');
-  expect(await cli.run('snapshot', '--inline')).toContain(':target on:click on:keydown');
-  await cli.run('eval', '() => { target.removeEventListener("click", fn); target.removeEventListener("keydown", fn); document.querySelector("#once").click(); }');
-  const snapshot = await cli.run('snapshot', '--inline');
+  expect(await cli.run('snapshot', 'default', '--inline')).toContain(':target on:click on:keydown');
+  await cli.run('eval', 'default', '() => { target.removeEventListener("click", fn, true); target.click(); }');
+  expect(await cli.run('snapshot', 'default', '--inline')).toContain(':target on:click on:keydown');
+  await cli.run('eval', 'default', '() => { target.removeEventListener("click", fn); target.removeEventListener("keydown", fn); document.querySelector("#once").click(); }');
+  const snapshot = await cli.run('snapshot', 'default', '--inline');
   expect(snapshot).not.toContain('on:');
   expect(snapshot).not.toContain(':target');
   expect(snapshot).not.toContain(':once');
   expect(snapshot).toContain('id=target');
-  expect((await cli.result('click', ':target')).output).toContain('Unknown ATML ref');
+  expect((await cli.result('click', 'default', ':target')).output).toContain('Unknown ATML ref');
   // Native form elements remain concise even when tracked.
-  await cli.run('eval', '() => { document.body.innerHTML="<button>Native</button>"; document.querySelector("button").addEventListener("click", () => {}); }');
-  expect(await cli.run('snapshot', '--inline')).toMatch(/:\d+ button\n  : Native/);
+  await cli.run('eval', 'default', '() => { document.body.innerHTML="<button>Native</button>"; document.querySelector("button").addEventListener("click", () => {}); }');
+  expect(await cli.run('snapshot', 'default', '--inline')).toMatch(/:\d+ button\n  : Native/);
 });
 
 test('aborted and timed out signals leave no persistent hints even when abort events are stopped', async ({ cli }) => {
@@ -70,14 +68,14 @@ test('aborted and timed out signals leave no persistent hints even when abort ev
     blockedController.signal.addEventListener('abort', event => event.stopImmediatePropagation());
     document.querySelector('#blocked').addEventListener('click', () => {}, {signal:blockedController.signal});
   </script>`);
-  const before = await cli.run('snapshot', '--inline');
+  const before = await cli.run('snapshot', 'default', '--inline');
   expect(before).toContain(':target on:click');
   expect(before).not.toContain('on:keydown');
   expect(before).toContain(':blocked on:click');
-  await cli.run('eval', `() => { controller.abort(); blockedController.abort();
+  await cli.run('eval', 'default', `() => { controller.abort(); blockedController.abort();
     document.querySelector('#timed').addEventListener('click', () => {}, {signal:AbortSignal.timeout(1)}); }`);
-  await cli.run('run-code', 'async page => { await page.waitForFunction(() => !document.querySelector("#timed").hasAttribute("data-browser-atml-listeners")); }');
-  expect(await cli.run('snapshot', '--inline')).not.toContain('on:');
+  await cli.run('run-code', 'default', 'async page => { await page.waitForFunction(() => !document.querySelector("#timed").hasAttribute("data-browser-atml-listeners")); }');
+  expect(await cli.run('snapshot', 'default', '--inline')).not.toContain('on:');
 });
 
 test('context instrumentation runs before scripts in new tabs, popups, frames and navigations', async ({ cli }) => {
@@ -93,22 +91,23 @@ test('context instrumentation runs before scripts in new tabs, popups, frames an
   });
   await new Promise<void>(resolve => parent.listen(0, '127.0.0.1', resolve));
   const url = `http://127.0.0.1:${(parent.address() as { port: number }).port}`;
+  cli.configure('', [url + '/**', `http://127.0.0.1:${childPort}/**`]);
   try {
-    const initial = await cli.run('open', url, '--inline');
+    const initial = await cli.run('open', 'default', url, '--inline');
     expect(initial).toContain(':main on:click');
     expect(initial).toContain(':frame on:click');
-    await cli.run('click', '#frame');
-    expect(await cli.run('snapshot', '--inline')).toContain('Clicked frame');
-    await cli.run('run-code', `async page => { await page.evaluate(url => { const frame=document.createElement('iframe'); frame.src=url;document.body.append(frame); }, 'http://127.0.0.1:${childPort}/dynamic'); await page.waitForFunction(() => document.querySelectorAll('iframe').length === 2); await page.frames()[2].waitForSelector('#frame'); }`);
-    const dynamic = await cli.run('snapshot', '--inline');
+    await cli.run('click', 'default', '#frame');
+    expect(await cli.run('snapshot', 'default', '--inline')).toContain('Clicked frame');
+    await cli.run('run-code', 'default', `async page => { await page.evaluate(url => { const frame=document.createElement('iframe'); frame.src=url;document.body.append(frame); }, 'http://127.0.0.1:${childPort}/dynamic'); await page.waitForFunction(() => document.querySelectorAll('iframe').length === 2); await page.frames()[2].waitForSelector('#frame'); }`);
+    const dynamic = await cli.run('snapshot', 'default', '--inline');
     expect(dynamic.match(/on:click id=frame\n    : (?:Clicked )?frame/g)).toHaveLength(2);
-    await cli.run('tab-new', url);
-    expect(await cli.run('snapshot', '--inline')).toContain(':main on:click');
-    await cli.run('goto', url + '/navigation');
-    expect(await cli.run('snapshot', '--inline')).toContain(':frame on:click');
-    await cli.run('run-code', `async page => { const popup=page.waitForEvent('popup'); await page.evaluate(url => window.open(url), '${url}/popup'); await (await popup).waitForLoadState(); }`);
-    await cli.run('tab-select', '2');
-    expect(await cli.run('snapshot', '--inline')).toContain(':main on:click');
+    await cli.run('tab-new', 'default', url);
+    expect(await cli.run('snapshot', 'default', '--inline')).toContain(':main on:click');
+    await cli.run('goto', 'default', url + '/navigation');
+    expect(await cli.run('snapshot', 'default', '--inline')).toContain(':frame on:click');
+    await cli.run('run-code', 'default', `async page => { const popup=page.waitForEvent('popup'); await page.evaluate(url => window.open(url), '${url}/popup'); await (await popup).waitForLoadState(); }`);
+    await cli.run('tab-select', 'default', '2');
+    expect(await cli.run('snapshot', 'default', '--inline')).toContain(':main on:click');
   } finally {
     child.closeAllConnections(); parent.closeAllConnections();
     await Promise.all([new Promise<void>(resolve => child.close(() => resolve())), new Promise<void>(resolve => parent.close(() => resolve()))]);

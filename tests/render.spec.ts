@@ -17,6 +17,24 @@ const render = (tree: AtmlNode, depth?: number) => {
   return renderAtml(tree, refs, depth);
 };
 
+for (const role of ['progressbar', 'meter', 'slider', 'spinbutton']) {
+  test(`renders ${role} values as compact sorted attributes alongside value text`, () => {
+    const control: AtmlNode = {
+      tag: 'div', kept: true,
+      attrs: { role, valuenow: '0', valuemin: '-5', valuemax: '10.5', valuetext: 'Zero items' },
+      children: [text('Visible caption')],
+    };
+    expect(render(control)).toBe(`role=${role} valuemax=10.5 valuemin=-5 valuenow=0 valuetext="Zero items"\n  : Visible caption`);
+    expect(render(control, 1)).toBe(`role=${role} valuemax=10.5 valuemin=-5 valuenow=0 valuetext="Zero items"`);
+  });
+}
+
+test('renders range observations without numeric correction or inferred values', () => {
+  expect(render({ tag: 'div', kept: true, attrs: { role: 'progressbar' } })).toBe('role=progressbar');
+  expect(render({ tag: 'div', kept: true, attrs: { role: 'meter', valuenow: 'unknown', valuemin: '100', valuemax: '-1', valuetext: '' } }))
+    .toBe('role=meter valuemax=-1 valuemin=100 valuenow=unknown valuetext');
+});
+
 test('merges inline elements and adjacent text nodes under a kept counter', () => {
   const strong: AtmlNode = { tag: 'strong', children: [text('2')] };
   const counter: AtmlNode = {

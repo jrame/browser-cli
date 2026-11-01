@@ -1,0 +1,39 @@
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.PrintStream;
+
+class Solution {
+
+	public static void main(String[] args) throws Exception {
+		solve(System.in, System.out);
+	}
+
+	static void solve(InputStream input, PrintStream output) throws IOException {
+		BufferedInputStream in = new BufferedInputStream(input);
+		int count = (int) nextNumber(in);
+		long highest = nextNumber(in);
+		long loss = 0;
+		for (int i = 1; i < count; i++) {
+			long value = nextNumber(in);
+			loss = Math.min(loss, value - highest);
+			highest = Math.max(highest, value);
+		}
+		output.println(loss);
+	}
+
+	private static long nextNumber(InputStream in) throws IOException {
+		int c;
+		do {
+			c = in.read();
+			if (c == -1)
+				throw new IOException("Unexpected end of input");
+		} while (c <= ' ');
+		long value = 0;
+		while (c >= '0' && c <= '9') {
+			value = value * 10 + c - '0';
+			c = in.read();
+		}
+		return value;
+	}
+}

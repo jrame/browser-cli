@@ -19,26 +19,38 @@ function splitCommands(argv) {
   if (!commands.at(-1).length)
     throw new Error('Expected a command after --then.');
 
-  let session = [];
+  const path = require('path');
+  const { coreDirectory } = require('./runtime.cjs');
+  const core = coreDirectory();
+  const { minimist } = require(path.join(core, 'lib/tools/cli-client/minimist.js'));
+  const { rejectSessionFlags, takeSessionArgument } = require(path.join(core, 'lib/tools/cli-client/program.js'));
+  const help = require(path.join(core, 'lib/tools/cli-client/help.json'));
+  const options = { boolean: [...help.booleanOptions, 'inline', 'all', 'g', 'help', 'json', 'raw', 'version'], string: ['_'] };
+  let session;
+  let unknownCommand = false;
   return commands.map(command => {
-    const optionEnd = command.indexOf('--');
-    const end = optionEnd === -1 ? command.length : optionEnd;
-    let explicitSession = false;
-    for (let i = 0; i < end; i++) {
-      const arg = command[i];
-      if (arg === '-s' || arg === '--session') {
-        if (i + 1 >= end || command[i + 1].startsWith('-'))
-          throw new Error(`${arg} requires a session name.`);
-        session = [arg, command[++i]];
-        explicitSession = true;
-      } else if (arg.startsWith('-s=') || arg.startsWith('--session=')) {
-        if (arg.endsWith('=') && arg.indexOf('=') === arg.length - 1)
-          throw new Error('Expected a nonempty session name.');
-        session = [arg];
-        explicitSession = true;
-      }
+    if (unknownCommand)
+      return command;
+    const args = minimist(command, options);
+    rejectSessionFlags(args);
+    const name = args._[0];
+    const metadata = help.commands[name];
+    if (!metadata) {
+      unknownCommand = true;
+      return command;
     }
-    return explicitSession ? command : [...session, ...command];
+    if (metadata.session === 'none')
+      return command;
+    if (session === undefined) {
+      takeSessionArgument(args, metadata);
+      session = args.session;
+      return command;
+    }
+    // Locate the command token, skipping any option values with the same text.
+    const index = command.findIndex((arg, i) => arg === name && minimist(command.slice(0, i + 1), options)._[0] === name);
+    const expanded = [...command];
+    expanded.splice(index + 1, 0, session);
+    return expanded;
   });
 }
 

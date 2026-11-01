@@ -24,6 +24,7 @@ export class AtmlSession {
   constructor(private _page: playwright.Page, private _testIdAttribute: string) {}
 
   async resolve(target: string): Promise<playwright.Locator | undefined> {
+    if (/^\d+$/.test(target)) throw new Error(`Invalid ATML target ${target}. ATML references require a ':' prefix; use :${target} (e.g. click :${target}).`);
     if (this._ambiguous.has(target)) throw new Error(`Ambiguous ATML target ${target}; use its numeric : reference.`);
     const entry = this._numbers.get(target) || this._named.get(target);
     if (!entry) {

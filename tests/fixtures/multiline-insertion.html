@@ -1,0 +1,38 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Local multiline insertion</title>
+<textarea id="textarea" aria-label="Native textarea"></textarea>
+<div id="contenteditable" contenteditable="true" aria-label="Editable text" style="white-space:pre-wrap"></div>
+<div id="monaco" style="width:800px;height:300px"></div>
+<script>
+  // One recorder per document, independent of snapshots and script executions.
+  if (!window.insertionProbe) {
+    window.insertionProbe = { executions: 0, events: [], listenerInstallations: 1 };
+    for (const type of ['beforeinput', 'input', 'compositionstart', 'compositionupdate', 'compositionend']) {
+      document.addEventListener(type, event => {
+        insertionProbe.events.push({
+          type, target: event.target.id || event.target.className,
+          inputType: event.inputType ?? null, data: event.data ?? null,
+          isComposing: event.isComposing ?? null, trusted: event.isTrusted,
+        });
+      }, true);
+    }
+  }
+  // Optional local AMD distribution. No CDN or external account is used.
+  if (new URLSearchParams(location.search).has('monaco')) {
+    const loader = document.createElement('script');
+    loader.src = '/vs/loader.js';
+    loader.onload = () => {
+      require.config({ paths: { vs: '/vs' } });
+      require(['vs/editor/editor.main'], () => {
+        window.editor = monaco.editor.create(document.querySelector('#monaco'), {
+          value: '', language: 'plaintext', automaticLayout: false,
+          autoIndent: 'none', formatOnType: false, formatOnPaste: false,
+          // Exercise the textarea path used by the reported script.
+          experimentalEditContextEnabled: false,
+        });
+      });
+    };
+    document.head.append(loader);
+  }
+</script>

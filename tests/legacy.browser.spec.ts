@@ -19,12 +19,12 @@ for (const fixture of oracle.cases.filter(entry => entry.browser)) {
   test(`Python ATML content parity: ${fixture.name}`, async ({ cli }) => {
     if (Object.keys(fixture.config).length) {
       const toml = '[atml]\n' + Object.entries(fixture.config).map(([key, value]) => `${key} = ${JSON.stringify(value)}`).join('\n');
-      fs.writeFileSync(path.join(cli.cwd, '.config', 'browser-cli', 'config.toml'), toml);
+      cli.configure(toml);
     }
     await cli.open(fixture.html);
     // JSON preserves indentation and trailing text spaces, unlike the test
     // transport's trimmed stdout in --raw mode.
-    const snapshot = JSON.parse(await cli.run('snapshot', '--inline', '--json')).snapshot;
+    const snapshot = JSON.parse(await cli.run('snapshot', 'default', '--inline', '--json')).snapshot;
     expect(typeof snapshot).toBe('string');
     expect(snapshot.split('\n').every((line: string) => line.trim().length > 0)).toBe(true);
     const content = (value: string) => value.split('\n').filter(line => line.trim()).map(line => line.replace(/^ +/, '')).join('\n');

@@ -4,18 +4,18 @@ Run multiple isolated browser sessions concurrently with state persistence.
 
 ## Named Browser Sessions
 
-Use `-s` flag to isolate browser contexts:
+Put the session name immediately after the command to isolate browser contexts:
 
 ```bash
 # Browser 1: Authentication flow
-browser -s=auth open https://app.example.com/login
+browser open auth https://app.example.com/login
 
 # Browser 2: Public browsing (separate cookies, storage)
-browser -s=public open https://example.com
+browser open public https://example.com
 
 # Commands are isolated by browser session
-browser -s=auth fill :1 "user@example.com"
-browser -s=public snapshot
+browser fill auth :1 "user@example.com"
+browser snapshot public
 ```
 
 ## Browser Session Isolation Properties
@@ -35,8 +35,8 @@ Each browser session has independent:
 browser list
 
 # Stop a browser session (close the browser)
-browser close                # stop the default browser
-browser -s=mysession close   # stop a named browser
+browser close default                # stop the default browser
+browser close mysession   # stop a named browser
 
 # Stop all browser sessions
 browser close-all
@@ -45,20 +45,16 @@ browser close-all
 browser kill-all
 
 # Delete browser session user data (profile directory)
-browser delete-data                # delete default browser data
-browser -s=mysession delete-data   # delete named browser data
+browser delete-data default                # delete default browser data
+browser delete-data mysession   # delete named browser data
 ```
 
-A headless session shuts down on its own after an hour without commands; the next command then reports that the browser is not open, so run `open` again. Headed browsers stay open. Use `open --idle-timeout=<ms>` to change the timeout, or `0` to disable it.
+A headless session shuts down on its own after an hour without commands; the next command then reports that the browser is not open, so run `open <session>` again. Headed browsers stay open. Use `open <session> --idle-timeout=<ms>` to change the timeout, or `0` to disable it.
 
-## Environment Variable
-
-Set a default browser session name via environment variable:
-
-```bash
-export PLAYWRIGHT_CLI_SESSION="mysession"
-browser open example.com  # Uses "mysession" automatically
-```
+Session names are required. `-s` and `--session` are rejected, and
+`PLAYWRIGHT_CLI_SESSION` does not supply a default. In a `--then` chain, specify
+the session on the first browser command; subsequent steps inherit it. Start a
+separate invocation to change sessions.
 
 ## Common Patterns
 
@@ -69,15 +65,15 @@ browser open example.com  # Uses "mysession" automatically
 # Scrape multiple sites concurrently
 
 # Start all browsers
-browser -s=site1 open https://site1.com &
-browser -s=site2 open https://site2.com &
-browser -s=site3 open https://site3.com &
+browser open site1 https://site1.com &
+browser open site2 https://site2.com &
+browser open site3 https://site3.com &
 wait
 
 # Take snapshots from each
-browser -s=site1 snapshot
-browser -s=site2 snapshot
-browser -s=site3 snapshot
+browser snapshot site1
+browser snapshot site2
+browser snapshot site3
 
 # Cleanup
 browser close-all
@@ -87,12 +83,12 @@ browser close-all
 
 ```bash
 # Test different user experiences
-browser -s=variant-a open "https://app.com?variant=a"
-browser -s=variant-b open "https://app.com?variant=b"
+browser open variant-a "https://app.com?variant=a"
+browser open variant-b "https://app.com?variant=b"
 
 # Compare
-browser -s=variant-a screenshot
-browser -s=variant-b screenshot
+browser screenshot variant-a
+browser screenshot variant-b
 ```
 
 ### Persistent Profile
@@ -101,10 +97,10 @@ By default, browser profile is kept in memory only. Use `--persistent` flag on `
 
 ```bash
 # Use persistent profile (auto-generated location)
-browser open https://example.com --persistent
+browser open default https://example.com --persistent
 
 # Use persistent profile with custom directory
-browser open https://example.com --profile=/path/to/profile
+browser open default https://example.com --profile=/path/to/profile
 ```
 
 ## Attaching to a Running Browser
@@ -117,28 +113,30 @@ Connect to a running Chrome or Edge instance by its channel name. The browser mu
 
 ```bash
 # Attach to Chrome
-browser attach --cdp=chrome
+browser attach chrome --cdp=chrome
 
 # Attach to Chrome Canary
-browser attach --cdp=chrome-canary
+browser attach chrome-canary --cdp=chrome-canary
 
 # Attach to Microsoft Edge
-browser attach --cdp=msedge
+browser attach msedge --cdp=msedge
 
 # Attach to Edge Dev
-browser attach --cdp=msedge-dev
+browser attach msedge-dev --cdp=msedge-dev
 ```
 
 Supported channels: `chrome`, `chrome-beta`, `chrome-dev`, `chrome-canary`, `msedge`, `msedge-beta`, `msedge-dev`, `msedge-canary`.
 
-When `--session` is not provided, the session is named after the channel (e.g. `--cdp=msedge` creates a session called `msedge`), so parallel attaches to Chrome and Edge don't collide on `default`. Pass `--session=<name>` to override.
+The first argument is the local session name, independent of the target.
+For example, `browser attach work --cdp=msedge` creates a session named `work`.
+For a bound Playwright browser, use `browser attach work <bound-browser-name>`.
 
 ### Attach via CDP endpoint
 
 Connect to a browser that exposes a Chrome DevTools Protocol endpoint:
 
 ```bash
-browser attach --cdp=http://localhost:9222
+browser attach default --cdp=http://localhost:9222
 ```
 
 ### Attach via browser extension
@@ -146,7 +144,7 @@ browser attach --cdp=http://localhost:9222
 Connect to a browser with the Playwright extension installed:
 
 ```bash
-browser attach --extension
+browser attach default --extension
 ```
 
 ### Detach
@@ -155,23 +153,23 @@ Tear down an attached session without affecting the external browser:
 
 ```bash
 # Detach the default attached session
-browser detach
+browser detach default
 
 # Detach a specific attached session
-browser -s=msedge detach
+browser detach msedge
 ```
 
 `detach` only works on sessions created via `attach`. For sessions created via `open`, use `close`.
 
 ## Default Browser Session
 
-When `-s` is omitted, commands use the default browser session:
+`default` is an ordinary session name that must be passed explicitly:
 
 ```bash
 # These use the same default browser session
-browser open https://example.com
-browser snapshot
-browser close  # Stops default browser
+browser open default https://example.com
+browser snapshot default
+browser close default  # Stops default browser
 ```
 
 ## Browser Session Configuration
@@ -180,16 +178,16 @@ Configure a browser session with specific settings when opening:
 
 ```bash
 # Open with config file
-browser open https://example.com --config=.config/browser-cli/my-cli.json
+browser open default https://example.com --config=.config/browser-cli/my-cli.json
 
 # Open with specific browser
-browser open https://example.com --browser=firefox
+browser open default https://example.com --browser=firefox
 
 # Open in headed mode
-browser open https://example.com --headed
+browser open default https://example.com --headed
 
 # Open with persistent profile
-browser open https://example.com --persistent
+browser open default https://example.com --persistent
 ```
 
 ## Best Practices
@@ -198,19 +196,19 @@ browser open https://example.com --persistent
 
 ```bash
 # GOOD: Clear purpose
-browser -s=github-auth open https://github.com
-browser -s=docs-scrape open https://docs.example.com
+browser open github-auth https://github.com
+browser open docs-scrape https://docs.example.com
 
 # AVOID: Generic names
-browser -s=s1 open https://github.com
+browser open s1 https://github.com
 ```
 
 ### 2. Always Clean Up
 
 ```bash
 # Stop browsers when done
-browser -s=auth close
-browser -s=scrape close
+browser close auth
+browser close scrape
 
 # Or stop all at once
 browser close-all
@@ -223,5 +221,5 @@ browser kill-all
 
 ```bash
 # Remove old browser data to free disk space
-browser -s=oldsession delete-data
+browser delete-data oldsession
 ```

@@ -5,19 +5,19 @@ When the snapshot doesn't show an element's `id`, `class`, `data-*` attributes, 
 ## Examples
 
 ```bash
-browser snapshot
+browser snapshot default
 # snapshot shows a button as :7 but doesn't reveal its id or data attributes
 
 # get the element's id
-browser eval "el => el.id" :7
+browser eval default "el => el.id" :7
 
 # get all CSS classes
-browser eval "el => el.className" :7
+browser eval default "el => el.className" :7
 
 # get a specific attribute
-browser eval "el => el.getAttribute('data-testid')" :7
-browser eval "el => el.getAttribute('aria-label')" :7
+browser eval default "el => el.getAttribute('data-testid')" :7
+browser eval default "el => el.getAttribute('aria-label')" :7
 
 # get a computed style property
-browser eval "el => getComputedStyle(el).display" :7
+browser eval default "el => getComputedStyle(el).display" :7
 ```

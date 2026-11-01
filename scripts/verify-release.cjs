@@ -4,6 +4,7 @@ const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
 const assert = require('assert/strict');
+const http = require('http');
 const { spawn, spawnSync } = require('child_process');
 const root = path.resolve(__dirname, '..');
 const windows = process.platform === 'win32';
@@ -93,17 +94,27 @@ try {
         ...(process.platform === 'linux' && process.getuid() === 0 ? { chromiumSandbox: false } : {}),
       } },
     }));
-    fs.writeFileSync(path.join(configDir, 'config.toml'), '[atml]\nremove_selectors = [".omit"]\n');
+    const html = '<title>Release smoke</title><input id="name"><button id="submit">Save</button><p class="omit">OMIT ME</p>';
+    const server = http.createServer((request, response) => {
+      response.setHeader('Content-Type', 'text/html; charset=utf-8');
+      response.end(html);
+    });
+    await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+    const url = `http://127.0.0.1:${server.address().port}/`;
+    fs.writeFileSync(path.join(configDir, 'config.toml'), `[navigation]\nallowed_urls = ["${url}**"]\n[atml]\nremove_selectors = [".omit"]\n`);
     try {
-      const html = '<title>Release smoke</title><input id="name"><button id="submit">Save</button><p class="omit">OMIT ME</p>';
       const value = "l'archive & spaces";
-      const snapshot = await cli(['open', 'data:text/html,' + encodeURIComponent(html), '--then', 'fill', ':name', value, '--then', 'snapshot', '--inline']);
+      const snapshot = await cli(['open', 'default', url, '--then', 'fill', ':name', value, '--then', 'snapshot', '--inline']);
       assert.match(snapshot, /Release smoke/);
       assert.ok(snapshot.includes(value), `Launcher argument preservation: ${snapshot}`);
       assert.match(snapshot, /:submit button/);
       assert.ok(!snapshot.includes('OMIT ME'), 'Bundled TOML dependency must apply filters');
     } finally {
-      await cli(['close']);
+      try { await cli(['close', 'default']); }
+      finally {
+        server.closeAllConnections();
+        await new Promise(resolve => server.close(resolve));
+      }
     }
   }
   passed = true;

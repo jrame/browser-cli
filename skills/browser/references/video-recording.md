@@ -6,26 +6,26 @@ Capture browser automation sessions as video for debugging, documentation, or ve
 
 ```bash
 # Open browser first
-browser open
+browser open default
 
 # Start recording, --cursor renders an animated mouse cursor that travels to each action point
 # and paces actions by 800ms so that it has time to travel
-browser video-start demo.webm --cursor --fps=60
+browser video-start default demo.webm --cursor --fps=60
 
 # Add a chapter marker for section transitions
-browser video-chapter "Getting Started" --description="Opening the homepage" --duration=2000
+browser video-chapter default "Getting Started" --description="Opening the homepage" --duration=2000
 
 # Navigate and perform actions
-browser goto https://example.com
-browser snapshot
-browser click :1
+browser goto default https://example.com
+browser snapshot default
+browser click default :1
 
 # Add another chapter
-browser video-chapter "Filling Form" --description="Entering test data" --duration=2000
-browser fill :2 "test input"
+browser video-chapter default "Filling Form" --description="Entering test data" --duration=2000
+browser fill default :2 "test input"
 
 # Stop and save
-browser video-stop
+browser video-stop default
 ```
 
 ## Cursor, Target Highlight and Click Point
@@ -37,16 +37,16 @@ opt-in and styled with plain CSS declarations, so they look exactly the way you 
 
 ```bash
 # Cursor only, nothing else on screen
-browser video-start demo.webm --cursor
+browser video-start default demo.webm --cursor
 
 # Action callout, plus a red click point and a dark frame around the target
-browser video-show-actions --duration=800 --position=top-right \
+browser video-show-actions default --duration=800 --position=top-right \
   --point-style="width: 20px; height: 20px; border-radius: 50%; background: rgba(255,0,0,.7)" \
   --highlight-style="outline: 2px solid #333; background: rgba(0,128,255,.15)" \
   --title-style="font-size: 16px"
 
 # Stop annotating actions
-browser video-hide-actions
+browser video-hide-actions default
 ```
 
 The same options are available programmatically, which is the better choice for hero scripts:
@@ -84,8 +84,8 @@ Notes:
 
 ```bash
 # Include context in filename
-browser video-start recordings/login-flow-2024-01-15.webm
-browser video-start recordings/checkout-test-run-42.webm
+browser video-start default recordings/login-flow-2024-01-15.webm
+browser video-start default recordings/checkout-test-run-42.webm
 ```
 
 ### 2. Record entire hero scripts.
@@ -95,7 +95,7 @@ It allows inserting appropriate pauses between the actions and annotating the vi
 
 1) Perform scenario using CLI and take note of all locators and actions. You'll need those locators to request their bounding boxes for highlight.
 2) Create a file with the intended script for video (below). Use pressSequentially w/ delay for nice typing, make reasonable pauses.
-3) Use browser run-code --filename your-script.js
+3) Use browser run-code default --filename your-script.js
 
 **Important**: Overlays are `pointer-events: none` — they do not interfere with page interactions. You can safely keep sticky overlays visible while clicking, filling, or performing any actions on the page.
 

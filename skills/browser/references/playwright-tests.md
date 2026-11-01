@@ -26,7 +26,7 @@ PLAYWRIGHT_HTML_OPEN=never npx playwright test --debug=cli
 # ...
 
 # Attach to the test
-browser attach tw-abcdef
+browser attach default tw-abcdef
 ```
 
 Keep the test running in the background while you explore and look for a fix.

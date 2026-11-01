@@ -6,7 +6,7 @@ const inlineTags = new Set('span b i strong em code a abbr mark small var bdo ci
 const roleSuppressedTags = new Set('button a input select textarea'.split(' '));
 const redundantRoles: Record<string, string> = { button: 'button', a: 'link', nav: 'navigation', input: 'textbox', select: 'combobox', textarea: 'textbox', form: 'form', img: 'img', dialog: 'dialog', table: 'grid', tr: 'row', td: 'cell', th: 'columnheader', main: 'main', header: 'banner', footer: 'contentinfo', aside: 'complementary' };
 const interactiveListeners = new Set('click dblclick mousedown mouseup pointerdown pointerup touchstart touchend keydown keyup keypress input change submit focus blur'.split(' '));
-const renderedAttrs = new Set('id role label type name placeholder for disabled data-testid alt checked expanded selected controls haspopup current orientation describedby labelledby value'.split(' '));
+const renderedAttrs = new Set('id role label type name placeholder for disabled data-testid alt checked expanded selected controls haspopup current orientation describedby labelledby value valuenow valuemin valuemax valuetext'.split(' '));
 
 export type AtmlRenderOptions = {
   testIdAttribute?: string;
@@ -94,6 +94,7 @@ export function renderAtml(tree: AtmlNode, refs: WeakMap<AtmlNode, string>, dept
       // Python quotes only values containing a literal space, without JSON escaping.
       parts.push(value === '' || value === 'true' ? attr : `${attr}=${value.includes(' ') ? `"${value}"` : value}`);
     }
+    if (node.noPointerBox) parts.push('[pointer-box=none]');
     if (node.box) parts.push(`[box=${node.box.join(',')}]`);
     // Focusable/editable generic nodes may have no other visible attributes.
     if (!parts.length) parts.push(tag);

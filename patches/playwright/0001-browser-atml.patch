@@ -141,7 +141,7 @@ index 2c21b83ca..f5d1f439b 100644
      let responseObject: mcpServer.CallToolResult & { isClose?: boolean };
      try {
 diff --git a/packages/playwright-core/src/tools/backend/context.ts b/packages/playwright-core/src/tools/backend/context.ts
-index 132f7e790..8275a8c75 100644
+index 132f7e790..85de721e2 100644
 --- a/packages/playwright-core/src/tools/backend/context.ts
 +++ b/packages/playwright-core/src/tools/backend/context.ts
 @@ -27,6 +27,11 @@ import { playwright } from '../../inprocess';
@@ -156,34 +156,39 @@ index 132f7e790..8275a8c75 100644
  
  import type { BrowserContextEx } from './browserContextEx';
  import type { CodegenLanguage } from './codegen';
-@@ -118,6 +123,8 @@ export class Context {
+@@ -118,6 +123,9 @@ export class Context {
    } | undefined;
    private _recordedActions: string[] | undefined;
    private _disposables: Disposable[] = [];
 +  private _allowedUrls: string[] | undefined;
++  private _navigationConfigPath: string | undefined;
 +  private _blockedNavigationUrls = new Set<string>();
  
    private _webmcpToolsSignature = '';
  
-@@ -135,6 +142,7 @@ export class Context {
+@@ -135,6 +143,11 @@ export class Context {
      this.sessionLog = options.sessionLog;
      this.options = options;
      this._rawBrowserContext = browserContext;
-+    this._allowedUrls = options.config.skillMode ? loadAtmlConfig(options.cwd).allowed_urls : undefined;
++    if (options.config.skillMode) {
++      const config = loadAtmlConfig(options.cwd);
++      this._allowedUrls = config.allowed_urls;
++      this._navigationConfigPath = config.configPath;
++    }
      testDebug('create context');
      process.on('unhandledRejection', this._onUnhandledRejection);
    }
-@@ -152,6 +160,9 @@ export class Context {
+@@ -152,6 +165,9 @@ export class Context {
  
    drainPendingUnhandledRejections(): unknown[] {
      const reasons = this._pendingUnhandledRejections.slice();
 +    for (const url of this._blockedNavigationUrls)
-+      reasons.push(new Error(`Navigation blocked by navigation.allowed_urls: ${url}`));
++      reasons.push(this._navigationError(url));
 +    this._blockedNavigationUrls.clear();
      this._pendingUnhandledRejections.length = 0;
      return reasons;
    }
-@@ -409,7 +420,38 @@ export class Context {
+@@ -409,7 +425,38 @@ export class Context {
      if (this.config.testIdAttribute)
        playwright.selectors.setTestIdAttribute(this.config.testIdAttribute);
      const browserContext = this._rawBrowserContext;
@@ -222,16 +227,21 @@ index 132f7e790..8275a8c75 100644
  
      for (const initScript of this.config.browser?.initScript || [])
        this._disposables.push(await browserContext.addInitScript({ path: path.resolve(this.options.cwd, initScript) }));
-@@ -422,6 +464,8 @@ export class Context {
+@@ -421,7 +468,13 @@ export class Context {
+     return browserContext;
    }
  
++  private _navigationError(url: string): Error {
++    return new Error(`Navigation blocked by navigation.allowed_urls: ${url}. Configure navigation.allowed_urls in ${this._navigationConfigPath}. Close and reopen the browser session after changing this file.`);
++  }
++
    checkUrlAllowed(url: string) {
-+    if (!navigationUrlAllowed(url, this._allowedUrls))
-+      throw new Error(`Navigation blocked by navigation.allowed_urls: ${url}`);
++    if (this._allowedUrls !== undefined && !navigationUrlAllowed(url, this._allowedUrls))
++      throw this._navigationError(url);
      if (this.config.allowUnrestrictedFileAccess)
        return;
      if (!URL.canParse(url))
-@@ -477,7 +521,7 @@ export async function workspaceFile(options: ContextOptions, fileName: string, p
+@@ -477,7 +530,7 @@ export async function workspaceFile(options: ContextOptions, fileName: string, p
  export function outputDir(options: ContextOptions): string {
    if (options.config.outputDir)
      return path.resolve(options.config.outputDir);
@@ -241,10 +251,50 @@ index 132f7e790..8275a8c75 100644
      return path.join(os.tmpdir(), baseName);
    return path.join(options.cwd, baseName);
 diff --git a/packages/playwright-core/src/tools/backend/find.ts b/packages/playwright-core/src/tools/backend/find.ts
-index 3251df89b..8b04af180 100644
+index 3251df89b..4c9d82f18 100644
 --- a/packages/playwright-core/src/tools/backend/find.ts
 +++ b/packages/playwright-core/src/tools/backend/find.ts
-@@ -60,7 +60,7 @@ const find = defineTabTool({
+@@ -17,6 +17,7 @@
+ import * as z from 'zod';
+ 
+ import { defineTabTool } from './tool';
++import { compileFindRegex, findQueryError, findUsage } from './atml/findQuery';
+ 
+ // Number of context lines to show around each match, like `grep -C`.
+ const contextLines = 3;
+@@ -29,26 +30,23 @@ const find = defineTabTool({
+     description: 'Search the accessibility snapshot of the current page for text or a regular expression. Returns matching snapshot nodes with a few lines of surrounding context (like search snippets), each shown under its path from the root of the tree, which is cheaper than capturing the whole snapshot when you only need to locate an element and its ref.',
+     inputSchema: z.object({
+       text: z.string().optional().describe('Plain text to search for in the page snapshot (case-insensitive substring match). Provide either text or regex, not both.'),
+-      regex: z.string().optional().refine(v => !v || isValidRegex(v), { message: 'Invalid regular expression' }).describe('Regular expression to search for in the page snapshot. Matching is case-sensitive by default; wrap the pattern in slashes to add flags, e.g. "/error/i" for case-insensitive. Provide either text or regex, not both.'),
++      regex: z.string().optional().refine(v => !v || !findQueryError(undefined, v), { message: `Invalid regular expression. ${findUsage}` }).describe('Regular expression to search for in the page snapshot. Matching is case-sensitive by default; wrap the pattern in slashes to add flags, e.g. "/error/i" for case-insensitive. Provide either text or regex, not both.'),
+       filename: z.string().optional().describe('Save results to a file instead of returning them in the response. Relative file names are resolved against the workspace root.'),
+     }),
+     type: 'readOnly',
+   },
+ 
+   handle: async (tab, params, response) => {
+-    if (!params.text && !params.regex) {
+-      response.addError('Provide either "text" or "regex" to search for.');
+-      return;
+-    }
+-    if (params.text && params.regex) {
+-      response.addError('Provide only one of "text" or "regex", not both.');
++    const error = findQueryError(params.text, params.regex);
++    if (error) {
++      response.addError(error);
+       return;
+     }
+ 
+     let query: string;
+     let matches: (line: string) => boolean;
+     if (params.regex) {
+-      const re = compileRegex(params.regex);
++      const re = compileFindRegex(params.regex);
+       query = String(re);
+       matches = line => {
+         re.lastIndex = 0;
+@@ -60,7 +58,7 @@ const find = defineTabTool({
        matches = line => line.toLowerCase().includes(needle);
      }
  
@@ -253,6 +303,29 @@ index 3251df89b..8b04af180 100644
      const lines = snapshot.split('\n');
      const indents = lines.map(indentOf);
      const matchedLines: number[] = [];
+@@ -111,22 +109,6 @@ const find = defineTabTool({
+   },
+ });
+ 
+-function compileRegex(source: string): RegExp {
+-  const literal = /^\/(.*)\/([a-z]*)$/.exec(source);
+-  const pattern = literal ? literal[1] : source;
+-  const flags = literal ? literal[2].replace(/g/g, '') : '';
+-  return new RegExp(pattern, flags);
+-}
+-
+-function isValidRegex(source: string): boolean {
+-  try {
+-    compileRegex(source);
+-    return true;
+-  } catch {
+-    return false;
+-  }
+-}
+-
+ function indentOf(line: string): number {
+   return line.length - line.trimStart().length;
+ }
 diff --git a/packages/playwright-core/src/tools/backend/keyboard.ts b/packages/playwright-core/src/tools/backend/keyboard.ts
 index f8f3abd27..00205b92d 100644
 --- a/packages/playwright-core/src/tools/backend/keyboard.ts
@@ -492,6 +565,18 @@ index 9a8a99f51..8f21da0fd 100644
          }
        }
      }
+diff --git a/packages/playwright-core/src/tools/backend/runCode.ts b/packages/playwright-core/src/tools/backend/runCode.ts
+index cfe8d84b7..3f6c07447 100644
+--- a/packages/playwright-core/src/tools/backend/runCode.ts
++++ b/packages/playwright-core/src/tools/backend/runCode.ts
+@@ -88,6 +88,7 @@ const runCode = defineTabTool({
+         if (typeof result === 'string')
+           response.addTextResult(result);
+       });
++      response.setIncludeSnapshot();
+     } finally {
+       unsubscribe();
+     }
 diff --git a/packages/playwright-core/src/tools/backend/screenshot.ts b/packages/playwright-core/src/tools/backend/screenshot.ts
 index a51091e8e..6b27b15a9 100644
 --- a/packages/playwright-core/src/tools/backend/screenshot.ts
@@ -505,6 +590,93 @@ index a51091e8e..6b27b15a9 100644
    fullPage: z.boolean().optional().describe('When true, takes a screenshot of the full scrollable page, instead of the currently visible viewport. Cannot be used with element screenshots.'),
    scale: z.enum(['css', 'device']).default('css').describe('Image resolution scale. "css" produces a screenshot sized in CSS pixels (smaller, consistent across devices). "device" produces a high-resolution screenshot using device pixels (larger, accounts for the device pixel ratio). Default is css.'),
  });
+diff --git a/packages/playwright-core/src/tools/backend/snapshot.ts b/packages/playwright-core/src/tools/backend/snapshot.ts
+index cda3d0fa6..39df58c11 100644
+--- a/packages/playwright-core/src/tools/backend/snapshot.ts
++++ b/packages/playwright-core/src/tools/backend/snapshot.ts
+@@ -61,6 +61,41 @@ const clickSchema = elementSchema.extend({
+   modifiers: z.array(z.enum(['Alt', 'Control', 'ControlOrMeta', 'Meta', 'Shift'])).optional().describe('Modifier keys to press'),
+ });
+ 
++// Serialized into the target frame; keep this independent of module state.
++function observeInputTarget(element: Element) {
++  const rect = element.getBoundingClientRect();
++  const style = getComputedStyle(element);
++  return {
++    tag: element.tagName.toLowerCase(),
++    width: rect.width, height: rect.height,
++    pointerBox: Array.from(element.getClientRects()).some(r => r.width > 0 && r.height > 0),
++    display: style.display, visibility: style.visibility,
++    disabled: element.matches(':disabled'),
++    inert: !!element.closest('[inert]'),
++    focused: element.ownerDocument.hasFocus() && (element.getRootNode() as Document | ShadowRoot).activeElement === element,
++  };
++}
++
++const focus = defineTabTool({
++  capability: 'core-input',
++  schema: {
++    name: 'browser_focus',
++    title: 'Focus',
++    description: 'Focus an element for keyboard input and verify it received focus',
++    inputSchema: elementSchema,
++    type: 'input',
++  },
++  handle: async (tab, params, response) => {
++    response.setIncludeSnapshot();
++    const { locator, resolved } = await tab.targetLocator(params);
++    response.addCode(`await page.${resolved}.focus();`);
++    await locator.focus(tab.actionTimeoutOptions);
++    const observations = await locator.evaluate(observeInputTarget, undefined, tab.actionTimeoutOptions);
++    if (!observations.focused)
++      throw new Error(`Focus failed for ${params.target}: element resolved but did not receive keyboard focus. DOM observations: ${JSON.stringify(observations)}`);
++  },
++});
++
+ const click = defineTabTool({
+   capability: 'core',
+   schema: {
+@@ -88,12 +123,26 @@ const click = defineTabTool({
+       clickCount: params.doubleClick ? 2 : 1,
+     });
+ 
+-    await tab.waitForCompletion(async () => {
+-      if (params.doubleClick)
+-        await locator.dblclick(options);
+-      else
+-        await locator.click(options);
+-    });
++    try {
++      await tab.waitForCompletion(async () => {
++        if (params.doubleClick)
++          await locator.dblclick(options);
++        else
++          await locator.click(options);
++      });
++    } catch (error) {
++      if (!(error instanceof Error) || error.name !== 'TimeoutError') throw error;
++      // Recheck identity so a removed/replaced ATML target remains a stale-ref
++      // error. Diagnostics never change the target or bypass pointer checks.
++      await tab.targetLocator(params);
++      const observations = await locator.evaluate(observeInputTarget, undefined, { timeout: 1000 }).catch(() => undefined);
++      if (observations) {
++        error.message += `\nClick target ${params.target} resolved after timeout. DOM observations after failure: ${JSON.stringify(observations)}.`;
++        if (!observations.pointerBox)
++          error.message += ` No positive-area pointer box was observed. For keyboard input, try focus ${params.target} before type/press; focus is checked separately.`;
++      }
++      throw error;
++    }
+   },
+ });
+ 
+@@ -227,6 +276,7 @@ const uncheck = defineTabTool({
+ 
+ export default [
+   snapshot,
++  focus,
+   click,
+   drag,
+   hover,
 diff --git a/packages/playwright-core/src/tools/backend/tab.ts b/packages/playwright-core/src/tools/backend/tab.ts
 index da326c272..fa286aa31 100644
 --- a/packages/playwright-core/src/tools/backend/tab.ts
@@ -608,7 +780,7 @@ index da326c272..fa286aa31 100644
          const selector = locatorOrSelectorAsSelector('javascript', param.target, this.context.config.testIdAttribute || 'data-testid');
          const handle = await this.page.$(selector);
 diff --git a/packages/playwright-core/src/tools/cli-client/output.ts b/packages/playwright-core/src/tools/cli-client/output.ts
-index afcac0e72..b024f2e53 100644
+index afcac0e72..a28f7728d 100644
 --- a/packages/playwright-core/src/tools/cli-client/output.ts
 +++ b/packages/playwright-core/src/tools/cli-client/output.ts
 @@ -111,14 +111,14 @@ export class TextOutput implements Output {
@@ -616,7 +788,7 @@ index afcac0e72..b024f2e53 100644
  
    errorDetachNotAttached(session: string): never {
 -    console.error(`Error: session '${session}' was not attached; use \`playwright-cli${session !== 'default' ? ` -s=${session}` : ''} close\` to stop it.`);
-+    console.error(`Error: session '${session}' was not attached; use \`browser${session !== 'default' ? ` -s=${session}` : ''} close\` to stop it.`);
++    console.error(`Error: session '${session}' was not attached; use \`browser close ${session}\` to stop it.`);
      return process.exit(1);
    }
  
@@ -624,7 +796,7 @@ index afcac0e72..b024f2e53 100644
      console.log(`The browser '${session}' is not open, please run open first`);
      console.log('');
 -    console.log(`  playwright-cli${session !== 'default' ? ` -s=${session}` : ''} open [params]`);
-+    console.log(`  browser${session !== 'default' ? ` -s=${session}` : ''} open [params]`);
++    console.log(`  browser open ${session} [url]`);
      return process.exit(1);
    }
  
@@ -633,7 +805,7 @@ index afcac0e72..b024f2e53 100644
      if (endpoint) {
        console.log(`### Session \`${session}\` created, attached to \`${endpoint}\`.`);
 -      console.log(`Run commands with: playwright-cli -s=${session} <command>`);
-+      console.log(`Run commands with: browser -s=${session} <command>`);
++      console.log(`Run commands with: browser <command> ${session} [args]`);
        console.log('');
      } else {
        console.log(`### Browser \`${session}\` opened with pid ${pid}.`);
@@ -642,7 +814,7 @@ index afcac0e72..b024f2e53 100644
    else
      lines.push(`  - data-dir: <in-memory>`);
 -  lines.push(`  - run \`playwright-cli attach "${server.title}"\` to attach`);
-+  lines.push(`  - run \`browser attach "${server.title}"\` to attach`);
++  lines.push(`  - run \`browser attach <session> "${server.title}"\` to attach`);
    return lines.join('\n');
  }
  
@@ -651,20 +823,61 @@ index afcac0e72..b024f2e53 100644
    lines.push(`  - data-dir: ${session.userDataDir}`);
    if (session.extensionInstalled)
 -    lines.push(`  - attach (extension): \`playwright-cli attach --extension=${session.channel}\``);
-+    lines.push(`  - attach (extension): \`browser attach --extension=${session.channel}\``);
++    lines.push(`  - attach (extension): \`browser attach ${session.channel} --extension=${session.channel}\``);
    else
      lines.push(`  - attach (extension): install at ${playwrightExtensionInstallUrl}`);
    if (session.endpoint) {
 -    lines.push(`  - attach (remote debugging): \`playwright-cli attach --cdp=${session.channel}\``);
-+    lines.push(`  - attach (remote debugging): \`browser attach --cdp=${session.channel}\``);
++    lines.push(`  - attach (remote debugging): \`browser attach ${session.channel} --cdp=${session.channel}\``);
    } else {
      const inspectScheme = session.channel.startsWith('msedge') ? 'edge' : 'chrome';
      lines.push(`  - attach (remote debugging): enable at ${inspectScheme}://inspect/#remote-debugging`);
+diff --git a/packages/playwright-core/src/tools/cli-client/presentation.ts b/packages/playwright-core/src/tools/cli-client/presentation.ts
+new file mode 100644
+index 000000000..6439db41d
+--- /dev/null
++++ b/packages/playwright-core/src/tools/cli-client/presentation.ts
+@@ -0,0 +1,26 @@
++/**
++ * Copyright (c) Microsoft Corporation.
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ * http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++import type { MinimistArgs } from './minimist';
++
++export function validatePresentationOptions(args: MinimistArgs, command: { fileOptions?: Record<string, 'input' | 'output'> }) {
++  if (args.format && args.format !== 'atml' && args.format !== 'yaml')
++    throw new Error('--format must be atml or yaml');
++  for (const [name, role] of Object.entries(command.fileOptions ?? {})) {
++    if (args.inline && args[name] && role === 'output')
++      throw new Error(`--inline cannot be combined with --${name}`);
++  }
++}
 diff --git a/packages/playwright-core/src/tools/cli-client/program.ts b/packages/playwright-core/src/tools/cli-client/program.ts
-index 327973107..5c2e52853 100644
+index 327973107..52b490a6f 100644
 --- a/packages/playwright-core/src/tools/cli-client/program.ts
 +++ b/packages/playwright-core/src/tools/cli-client/program.ts
-@@ -36,6 +36,7 @@ import type { MinimistArgs } from './minimist';
+@@ -29,6 +29,8 @@ import { Session } from './session';
+ import { libPath } from '../../package';
+ import { serverRegistry } from '../../serverRegistry';
+ import { minimist } from './minimist';
++import { validatePresentationOptions } from './presentation';
++import { validateFindQuery } from '../backend/atml/findQuery';
+ 
+ import type { ListData, ListedBrowser, Output } from './output';
+ import type { ClientInfo, SessionFile } from './registry';
+@@ -36,6 +38,7 @@ import type { MinimistArgs } from './minimist';
  
  type GlobalOptions = {
    help?: boolean;
@@ -672,7 +885,7 @@ index 327973107..5c2e52853 100644
    json?: boolean;
    raw?: boolean;
    session?: string;
-@@ -66,6 +67,7 @@ const globalOptions: (keyof (GlobalOptions & OpenOptions & AttachOptions))[] = [
+@@ -66,6 +69,7 @@ const globalOptions: (keyof (GlobalOptions & OpenOptions & AttachOptions))[] = [
  ];
  
  const booleanOptions: (keyof (GlobalOptions & OpenOptions & AttachOptions & { all?: boolean, g?: boolean }))[] = [
@@ -680,7 +893,20 @@ index 327973107..5c2e52853 100644
    'all',
    'g',
    'help',
-@@ -103,12 +105,12 @@ export async function program(options?: { embedderVersion?: string}) {
+@@ -81,11 +85,7 @@ export async function program(options?: { embedderVersion?: string}) {
+   const argv = process.argv.slice(2);
+   const boolean = [...help.booleanOptions, ...booleanOptions];
+   const args: MinimistArgs = minimist(argv, { boolean, string: ['_'] });
+-  // Normalize -s alias to --session
+-  if (args.s) {
+-    args.session = args.s;
+-    delete args.s;
+-  }
++  rejectSessionFlags(args);
+   // Normalize -g alias to --global
+   if (args.g) {
+     args.global = true;
+@@ -103,12 +103,12 @@ export async function program(options?: { embedderVersion?: string}) {
    const command = commandName && help.commands[commandName];
    if (args.help || args.h || !commandName) {
      if (command) {
@@ -697,19 +923,21 @@ index 327973107..5c2e52853 100644
        output.help(lines.join('\n\n'));
      }
      process.exit(0);
-@@ -117,6 +119,11 @@ export async function program(options?: { embedderVersion?: string}) {
+@@ -117,8 +117,13 @@ export async function program(options?: { embedderVersion?: string}) {
    if (!command)
      output.errorUnknownCommand(commandName, help.global);
  
-+  if (args.format && args.format !== 'atml' && args.format !== 'yaml')
-+    throw new Error('--format must be atml or yaml');
-+  if (args.inline && args.filename)
-+    throw new Error('--inline cannot be combined with --filename');
++  takeSessionArgument(args, command);
++  validatePresentationOptions(args, command);
 +  const presentation = { format: args.format, inline: args.inline, 'atml-config': args['atml-config'] };
    validateFlags(args, command, output);
    validateArgs(args, command, output);
++  if (commandName === 'find')
++    validateFindQuery(args._[1], args.regex);
  
-@@ -158,7 +165,7 @@ export async function program(options?: { embedderVersion?: string}) {
+   const registry = await Registry.load();
+   const sessionName = resolveSessionName(args.session as string);
+@@ -158,7 +163,7 @@ export async function program(options?: { embedderVersion?: string}) {
        const { pid } = await startSession(sessionName, registry, clientInfo, args, 'open');
        const newEntry = await registry.loadEntry(clientInfo, sessionName);
        const params = args._.slice(1);
@@ -718,7 +946,12 @@ index 327973107..5c2e52853 100644
        output.open(sessionName, pid, toolText);
        return;
      }
-@@ -183,7 +190,7 @@ export async function program(options?: { embedderVersion?: string}) {
+@@ -179,11 +184,11 @@ export async function program(options?: { embedderVersion?: string}) {
+       const targetName = attachTarget ?? cdpChannel ?? extensionChannel ?? args.endpoint as string ?? args.cdp as string;
+       if (!targetName)
+         output.errorAttachNoTarget();
+-      const attachSessionName = explicitSessionName(args.session as string) ?? attachTarget ?? cdpChannel ?? extensionChannel ?? sessionName;
++      const attachSessionName = sessionName;
        args.session = attachSessionName;
        const { pid } = await startSession(attachSessionName, registry, clientInfo, args, 'attach');
        const newEntry = await registry.loadEntry(clientInfo, attachSessionName);
@@ -727,7 +960,16 @@ index 327973107..5c2e52853 100644
        output.attach(attachSessionName, pid, targetName, toolText);
        return;
      }
-@@ -449,7 +456,7 @@ async function collectList(registry: Registry, clientInfo: ClientInfo, all: bool
+@@ -218,7 +223,7 @@ export async function program(options?: { embedderVersion?: string}) {
+         `--workspaceDir=${clientInfo.workspaceDir ?? ''}`,
+       ];
+       // Only pass --sessionName when the user explicitly requested a session
+-      // (via -s/--session or PLAYWRIGHT_CLI_SESSION). Bare `playwright cli show`
++      // (via the positional session). Bare `browser show`
+       // opens the dashboard generically, with no specific session to reveal,
+       // so the daemon should ack as soon as it's ready rather than waiting for
+       // a reveal that was never asked for.
+@@ -449,7 +454,7 @@ async function collectList(registry: Registry, clientInfo: ClientInfo, all: bool
  function validateFlags(args: MinimistArgs, command: { flags: Record<string, 'boolean' | 'string'>, help: string }, output: Output) {
    const unknownFlags: string[] = [];
    for (const key of Object.keys(args)) {
@@ -736,8 +978,31 @@ index 327973107..5c2e52853 100644
        continue;
      if ((globalOptions as readonly string[]).includes(key))
        continue;
+@@ -475,3 +480,22 @@ export function calculateSha1(buffer: Buffer | string): string {
+   hash.update(buffer);
+   return hash.digest('hex');
+ }
++
++export function rejectSessionFlags(args: MinimistArgs) {
++  if ('s' in args || 'session' in args)
++    throw new Error('Session flags have been removed. Use browser <command> <session> [args].');
++}
++
++export function takeSessionArgument(args: MinimistArgs, command: { session: 'required' | 'optional' | 'none' }) {
++  if (command.session === 'none')
++    return;
++  const name = args._[1];
++  if (name === undefined && command.session === 'optional' && !args.annotate)
++    return;
++  if (!name)
++    throw new Error(`Missing session name. Use browser ${args._[0]} <session> [args].`);
++  if (!/^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/.test(name))
++    throw new Error('Invalid session name: use letters, digits, dots, underscores or hyphens, starting with a letter or digit.');
++  args.session = name;
++  args._.splice(1, 1);
++}
 diff --git a/packages/playwright-core/src/tools/cli-client/registry.ts b/packages/playwright-core/src/tools/cli-client/registry.ts
-index a9edb0323..4c023b3d9 100644
+index a9edb0323..a56ba2d23 100644
 --- a/packages/playwright-core/src/tools/cli-client/registry.ts
 +++ b/packages/playwright-core/src/tools/cli-client/registry.ts
 @@ -155,7 +155,7 @@ function computeBaseDaemonDir(): string {
@@ -758,8 +1023,17 @@ index a9edb0323..4c023b3d9 100644
        return dir;
      const parentDir = path.dirname(dir);
      if (parentDir === dir)
+@@ -199,7 +199,7 @@ const daemonProfilesDir = (workspaceDirHash: string) => {
+ };
+ 
+ export function explicitSessionName(sessionName?: string): string | undefined {
+-  return sessionName || process.env.PLAYWRIGHT_CLI_SESSION;
++  return sessionName || undefined;
+ }
+ 
+ export function resolveSessionName(sessionName?: string): string {
 diff --git a/packages/playwright-core/src/tools/cli-client/session.ts b/packages/playwright-core/src/tools/cli-client/session.ts
-index c8d810d8a..55c3cff6a 100644
+index c8d810d8a..f5a87f951 100644
 --- a/packages/playwright-core/src/tools/cli-client/session.ts
 +++ b/packages/playwright-core/src/tools/cli-client/session.ts
 @@ -44,12 +44,12 @@ export class Session {
@@ -767,22 +1041,45 @@ index c8d810d8a..55c3cff6a 100644
    async run(clientInfo: ClientInfo, args: MinimistArgs, options?: { raw?: boolean, json?: boolean }): Promise<{ text: string, isError?: boolean }> {
      if (!this.isCompatible(clientInfo))
 -      throw new Error(`Client is v${clientInfo.version}, session '${this.name}' is v${this.config.version}. Run\n\n  playwright-cli${this.name !== 'default' ? ` -s=${this.name}` : ''} open\n\nto restart the browser session.`);
-+      throw new Error(`Client is v${clientInfo.version}, session '${this.name}' is v${this.config.version}. Run\n\n  browser${this.name !== 'default' ? ` -s=${this.name}` : ''} open\n\nto restart the browser session.`);
++      throw new Error(`Client is v${clientInfo.version}, session '${this.name}' is v${this.config.version}. Run\n\n  browser open ${this.name}\n\nto restart the browser session.`);
  
      const { socket } = await this._connect();
      if (!socket)
 -      throw new Error(`Browser '${this.name}' is not open. Run\n\n  playwright-cli${this.name !== 'default' ? ` -s=${this.name}` : ''} open\n\nto start the browser session.`);
 -    return await SocketConnectionClient.sendAndClose(socket, 'run', { args, cwd: process.cwd(), raw: options?.raw, json: options?.json });
-+      throw new Error(`Browser '${this.name}' is not open. Run\n\n  browser${this.name !== 'default' ? ` -s=${this.name}` : ''} open\n\nto start the browser session.`);
++      throw new Error(`Browser '${this.name}' is not open. Run\n\n  browser open ${this.name}\n\nto start the browser session.`);
 +    return await SocketConnectionClient.sendAndClose(socket, 'run', { args, cwd: process.cwd(), raw: options?.raw, json: options?.json, chainSnapshot: process.env.BROWSER_CLI_CHAIN_SNAPSHOT });
    }
  
    async stop(): Promise<{ wasOpen: boolean }> {
+diff --git a/packages/playwright-core/src/tools/cli-daemon/command.ts b/packages/playwright-core/src/tools/cli-daemon/command.ts
+index e3b8336e9..e45cdfca4 100644
+--- a/packages/playwright-core/src/tools/cli-daemon/command.ts
++++ b/packages/playwright-core/src/tools/cli-daemon/command.ts
+@@ -25,6 +25,10 @@ export type CommandSchema<Args extends zodType.ZodTypeAny, Options extends zodTy
+   description: string;
+   hidden?: boolean;
+   raw?: boolean;
++  // Browser commands require a positional session; workspace commands opt out.
++  session?: 'required' | 'optional' | 'none';
++  // File paths belong to the command, not to the snapshot presentation layer.
++  fileOptions?: Record<string, 'input' | 'output'>;
+   args?: Args;
+   options?: Options;
+   toolName: string | ((args: zodType.infer<Args> & zodType.infer<Options>) => string);
 diff --git a/packages/playwright-core/src/tools/cli-daemon/commands.ts b/packages/playwright-core/src/tools/cli-daemon/commands.ts
-index 530c0c180..0cba7d122 100644
+index 530c0c180..e218e014d 100644
 --- a/packages/playwright-core/src/tools/cli-daemon/commands.ts
 +++ b/packages/playwright-core/src/tools/cli-daemon/commands.ts
-@@ -47,7 +47,7 @@ const open = declareCommand({
+@@ -16,6 +16,7 @@
+ 
+ import * as z from 'zod';
+ import { declareCommand } from './command';
++import { regexValueError, validateFindQuery } from '../backend/atml/findQuery';
+ 
+ import type { AnyCommandSchema } from './command';
+ 
+@@ -47,7 +48,7 @@ const open = declareCommand({
    }),
    options: z.object({
      browser: z.string().optional().describe('Browser or chrome channel to use, possible values: chrome, firefox, webkit, msedge.'),
@@ -791,16 +1088,42 @@ index 530c0c180..0cba7d122 100644
      device: z.string().optional().describe('Emulate a specific device, for example "iPhone 15".'),
      headed: z.boolean().optional().describe('Run browser in headed mode'),
      ['idle-timeout']: numberArg.optional().describe('Shut the session down after this many milliseconds without a command. Defaults to one hour for headless browsers, never for headed ones. Pass 0 to disable.'),
-@@ -70,7 +70,7 @@ const attach = declareCommand({
+@@ -70,8 +71,7 @@ const attach = declareCommand({
      cdp: z.string().optional().describe('Connect to an existing browser via CDP endpoint URL.'),
      endpoint: z.string().optional().describe('Playwright browser server endpoint to attach to.'),
      extension: z.union([z.boolean(), z.string()]).optional().describe('Connect to browser extension, optionally specify browser name (e.g. --extension=chrome)'),
 -    config: z.string().optional().describe('Path to the configuration file, defaults to .playwright/cli.config.json'),
+-    session: z.string().optional().describe('Session name (defaults to bound browser name or "default")'),
 +    config: z.string().optional().describe('Path to the configuration file, defaults to .config/browser-cli/cli.config.json'),
-     session: z.string().optional().describe('Session name (defaults to bound browser name or "default")'),
      ['idle-timeout']: numberArg.optional().describe('Detach after this many milliseconds without a command. Attached browsers are never detached by default.'),
    }),
-@@ -381,7 +381,7 @@ const snapshot = declareCommand({
+   toolName: 'browser_snapshot',
+@@ -233,6 +233,17 @@ const mouseWheel = declareCommand({
+ 
+ // Core
+ 
++const focus = declareCommand({
++  name: 'focus',
++  description: 'Focus an element for keyboard input and verify it received focus',
++  category: 'core',
++  args: z.object({
++    target: z.string().describe(elementTargetDescription),
++  }),
++  toolName: 'browser_focus',
++  toolParams: ({ target }) => ({ target }),
++});
++
+ const click = declareCommand({
+   name: 'click',
+   description: 'Perform click on a web page',
+@@ -375,13 +386,14 @@ const uncheck = declareCommand({
+ 
+ const snapshot = declareCommand({
+   name: 'snapshot',
++  fileOptions: { filename: 'output' },
+   description: 'Capture page snapshot to obtain element ref',
+   category: 'core',
+   args: z.object({
      target: z.string().optional().describe('Element reference from the previous page snapshot, or a unique element selector for the root element to capture a partial snapshot instead of the whole page'),
    }),
    options: z.object({
@@ -809,20 +1132,196 @@ index 530c0c180..0cba7d122 100644
      depth: numberArg.optional().describe('Limit snapshot depth, unlimited by default.'),
      boxes: z.boolean().optional().describe('Include each element\'s bounding box as [box=x,y,width,height] in the snapshot. Coordinates are viewport-relative, in CSS pixels (Element.getBoundingClientRect).'),
    }),
+@@ -391,17 +403,21 @@ const snapshot = declareCommand({
+ 
+ const find = declareCommand({
+   name: 'find',
++  fileOptions: { filename: 'output' },
+   description: 'Search the page snapshot for text or a regexp, returning matching nodes with surrounding context (like search snippets)',
+   category: 'core',
+   args: z.object({
+     text: z.string().optional().describe('Plain text to search for in the page snapshot (case-insensitive substring match)'),
+   }),
+   options: z.object({
+-    regex: z.string().optional().describe('Regular expression to search for in the page snapshot. Provide either a text argument or --regex, not both.'),
++    regex: z.string({ error: regexValueError }).optional().describe('Pattern value (not a boolean flag): browser find <session> --regex "Sign (in|up)". Case-sensitive by default; use "/sign (in|up)/i" for case-insensitive matching. Provide either a text argument or --regex with its pattern, not both.'),
+     filename: z.string().optional().describe('Save results to a file instead of returning them in the response.'),
+   }),
+   toolName: 'browser_find',
+-  toolParams: ({ text, regex, filename }) => ({ text, regex, filename }),
++  toolParams: ({ text, regex, filename }) => {
++    validateFindQuery(text, regex);
++    return { text, regex, filename };
++  },
+ });
+ 
+ const generateLocator = declareCommand({
+@@ -432,6 +448,7 @@ const highlight = declareCommand({
+ 
+ const evaluate = declareCommand({
+   name: 'eval',
++  fileOptions: { filename: 'output' },
+   description: 'Evaluate JavaScript expression on page or element',
+   category: 'core',
+   args: z.object({
+@@ -579,13 +596,14 @@ const clearMedia = declareCommand({
+ 
+ const runCode = declareCommand({
+   name: 'run-code',
+-  description: 'Run Playwright code snippet',
++  fileOptions: { filename: 'input' },
++  description: 'Run Playwright code and capture the resulting page (file by default, --inline for text)',
+   category: 'devtools',
+   args: z.object({
+     code: z.string().optional().describe('A JavaScript function containing Playwright code to execute. It will be invoked with a single argument, page, which you can use for any page interaction.'),
+   }),
+   options: z.object({
+-    filename: z.string().optional().describe('Load code from the specified file.'),
++    filename: z.string().optional().describe('Read JavaScript from this input file; --inline only controls the snapshot output.'),
+   }),
+   toolName: 'browser_run_code_unsafe',
+   toolParams: ({ code, filename }) => ({ code, filename }),
+@@ -902,6 +920,7 @@ const networkStateSet = declareCommand({
+ 
+ const screenshot = declareCommand({
+   name: 'screenshot',
++  fileOptions: { filename: 'output' },
+   description: 'screenshot of the current page or element',
+   category: 'export',
+   args: z.object({
+@@ -919,6 +938,7 @@ const screenshot = declareCommand({
+ 
+ const pdfSave = declareCommand({
+   name: 'pdf',
++  fileOptions: { filename: 'output' },
+   description: 'Save page as PDF',
+   category: 'export',
+   args: z.object({}),
+@@ -963,6 +983,7 @@ const filenameOption = z.string().optional().describe('Filename to save the resu
+ 
+ const networkRequest = declareCommand({
+   name: 'request',
++  fileOptions: { filename: 'output' },
+   description: 'Show full details (headers, body, response) of a single network request by its number from the `requests` command.',
+   category: 'network',
+   args: z.object({
+@@ -977,6 +998,7 @@ const networkRequest = declareCommand({
+ 
+ const networkRequestHeaders = declareCommand({
+   name: 'request-headers',
++  fileOptions: { filename: 'output' },
+   description: 'Print only the request headers for a single network request by its number from the `requests` command.',
+   category: 'network',
+   raw: true,
+@@ -992,6 +1014,7 @@ const networkRequestHeaders = declareCommand({
+ 
+ const networkRequestBody = declareCommand({
+   name: 'request-body',
++  fileOptions: { filename: 'output' },
+   description: 'Print only the request body for a single network request by its number from the `requests` command.',
+   category: 'network',
+   raw: true,
+@@ -1007,6 +1030,7 @@ const networkRequestBody = declareCommand({
+ 
+ const networkResponseHeaders = declareCommand({
+   name: 'response-headers',
++  fileOptions: { filename: 'output' },
+   description: 'Print only the response headers for a single network request by its number from the `requests` command.',
+   category: 'network',
+   raw: true,
+@@ -1022,6 +1046,7 @@ const networkResponseHeaders = declareCommand({
+ 
+ const networkResponseBody = declareCommand({
+   name: 'response-body',
++  fileOptions: { filename: 'output' },
+   description: 'Print the response body for a single network request by its number from the `requests` command. Textual bodies are inlined; binary bodies are saved to a file and the path is printed.',
+   category: 'network',
+   raw: true,
+@@ -1071,6 +1096,7 @@ const tracingStop = declareCommand({
+ 
+ const videoStart = declareCommand({
+   name: 'video-start',
++  fileOptions: { filename: 'output' },
+   description: 'Start video recording',
+   category: 'devtools',
+   args: z.object({
+@@ -1141,6 +1167,7 @@ const videoHideActions = declareCommand({
+ 
+ const dashboardShow = declareCommand({
+   name: 'show',
++  session: 'optional',
+   description: 'Show Playwright Dashboard',
+   category: 'devtools',
+   raw: true,
+@@ -1188,6 +1215,7 @@ const pauseAt = declareCommand({
+ 
+ const sessionList = declareCommand({
+   name: 'list',
++  session: 'none',
+   description: 'List browser sessions',
+   category: 'browsers',
+   args: z.object({}),
+@@ -1200,6 +1228,7 @@ const sessionList = declareCommand({
+ 
+ const sessionCloseAll = declareCommand({
+   name: 'close-all',
++  session: 'none',
+   description: 'Close all browser sessions',
+   category: 'browsers',
+   toolName: '',
+@@ -1208,6 +1237,7 @@ const sessionCloseAll = declareCommand({
+ 
+ const killAll = declareCommand({
+   name: 'kill-all',
++  session: 'none',
+   description: 'Forcefully kill all browser sessions (for stale/zombie processes)',
+   category: 'browsers',
+   toolName: '',
+@@ -1233,6 +1263,7 @@ const configPrint = declareCommand({
+ 
+ const install = declareCommand({
+   name: 'install',
++  session: 'none',
+   description: 'Initialize workspace',
+   category: 'install',
+   args: z.object({}),
+@@ -1246,6 +1277,7 @@ const install = declareCommand({
+ 
+ const installBrowser = declareCommand({
+   name: 'install-browser',
++  session: 'none',
+   description: 'Install browser',
+   category: 'install',
+   args: z.object({
+@@ -1320,6 +1352,7 @@ const commandsArray: AnyCommandSchema[] = [
+   detach,
+   goto,
+   type,
++  focus,
+   click,
+   doubleClick,
+   fill,
 diff --git a/packages/playwright-core/src/tools/cli-daemon/daemon.ts b/packages/playwright-core/src/tools/cli-daemon/daemon.ts
-index b71dcc477..1b7eea976 100644
+index b71dcc477..148aec6ec 100644
 --- a/packages/playwright-core/src/tools/cli-daemon/daemon.ts
 +++ b/packages/playwright-core/src/tools/cli-daemon/daemon.ts
-@@ -116,8 +116,17 @@ export async function startCliDaemonServer(
+@@ -26,6 +26,7 @@ import { BrowserBackend } from '../backend/browserBackend';
+ import { browserTools } from '../backend/tools';
+ import { parseCommand } from './command';
+ import { commands } from './commands';
++import { validatePresentationOptions } from '../cli-client/presentation';
+ 
+ import { SocketConnection } from '../utils/socketConnection';
+ import type * as playwright from '../../..';
+@@ -116,8 +117,16 @@ export async function startCliDaemonServer(
            else
              await sendAck();
          } else if (method === 'run') {
 -          const { toolName, toolParams } = parseCliCommand(params.args);
 -          toolParams._meta = { cwd: params.cwd, raw: params.raw || params.json, json: !!params.json };
 +          const commandArgs = { ...params.args };
++          validatePresentationOptions(commandArgs, commands[commandArgs._[0]] ?? {});
 +          const format = commandArgs.format || 'atml';
-+          if (format !== 'atml' && format !== 'yaml')
-+            throw new Error('--format must be atml or yaml');
 +          const inline = !!commandArgs.inline;
 +          const atmlConfig = commandArgs['atml-config'];
 +          delete commandArgs.format;
@@ -843,38 +1342,97 @@ index b71dcc477..1b7eea976 100644
  
  function createSessionConfig(clientInfo: ClientInfo, sessionName: string, browserInfo: BrowserInfo, options: {
 diff --git a/packages/playwright-core/src/tools/cli-daemon/helpGenerator.ts b/packages/playwright-core/src/tools/cli-daemon/helpGenerator.ts
-index a764802b6..018e5ff3c 100644
+index a764802b6..d015268f9 100644
 --- a/packages/playwright-core/src/tools/cli-daemon/helpGenerator.ts
 +++ b/packages/playwright-core/src/tools/cli-daemon/helpGenerator.ts
-@@ -48,7 +48,7 @@ function commandArgsText(args: CommandArg[]) {
+@@ -23,8 +23,10 @@ import type { AnyCommandSchema, Category } from './command';
+ 
+ type CommandArg = { name: string, description: string, optional: boolean, variadic: boolean };
+ 
+-function commandArgs(command: AnyCommandSchema): CommandArg[] {
++function commandArgs(command: AnyCommandSchema, includeSession = false): CommandArg[] {
+   const args: CommandArg[] = [];
++  if (includeSession && command.session !== 'none')
++    args.push({ name: 'session', description: 'Browser session name', optional: command.session === 'optional', variadic: false });
+   const shape = command.args ? (command.args as zodType.ZodObject<any>).shape : {};
+   const names = Object.keys(shape);
+   for (const [name, schema] of Object.entries(shape)) {
+@@ -46,9 +48,9 @@ function commandArgsText(args: CommandArg[]) {
+ }
+ 
  function generateCommandHelp(command: AnyCommandSchema) {
-   const args = commandArgs(command);
+-  const args = commandArgs(command);
++  const args = commandArgs(command, true);
    const lines: string[] = [
 -    `playwright-cli ${command.name} ${commandArgsText(args)}`,
 +    `browser ${command.name} ${commandArgsText(args)}`,
      '',
      command.description,
      '',
-@@ -94,8 +94,8 @@ const categories: { name: Category, title: string }[] = [
+@@ -68,7 +70,8 @@ function generateCommandHelp(command: AnyCommandSchema) {
+       const unwrapped = unwrapZodType(zodSchema);
+       if (unwrapped instanceof z.ZodEnum)
+         description = `${description} (one of: ${unwrapped.options.join(', ')})`.trim();
+-      lines.push(formatWithGap(`  --${name}`, description));
++      const value = isBooleanSchema(zodSchema) ? '' : ` <${name === 'regex' ? 'pattern' : 'value'}>`;
++      lines.push(formatWithGap(`  --${name}${value}`, description));
+     }
+   }
+ 
+@@ -94,8 +97,8 @@ const categories: { name: Category, title: string }[] = [
  
  export function generateHelp() {
    const lines: string[] = [];
 -  lines.push('Usage: playwright-cli <command> [args] [options]');
 -  lines.push('Usage: playwright-cli -s=<session> <command> [args] [options]');
-+  lines.push('Usage: browser <command> [args] [options]');
-+  lines.push('Usage: browser -s=<session> <command> [args] [options]');
++  lines.push('Usage: browser <command> <session> [args] [options]');
++  lines.push('Workspace commands (list, close-all, kill-all, install, install-browser) take no session.');
  
    const commandsByCategory = new Map<string, AnyCommandSchema[]>();
    for (const c of categories)
-@@ -157,7 +157,7 @@ function generateHelpEntry(command: AnyCommandSchema): string {
+@@ -149,15 +152,15 @@ export function generateReadme() {
+ }
+ 
+ function generateHelpEntry(command: AnyCommandSchema): string {
+-  const args = commandArgs(command);
++  const args = commandArgs(command, true);
+   const prefix = `  ${command.name} ${commandArgsText(args)}`;
+   const suffix = command.description.toLowerCase();
+   return formatWithGap(prefix, suffix);
+ }
  
  function generateReadmeEntry(command: AnyCommandSchema): string {
-   const args = commandArgs(command);
+-  const args = commandArgs(command);
 -  const prefix = `playwright-cli ${command.name} ${commandArgsText(args)}`;
++  const args = commandArgs(command, true);
 +  const prefix = `browser ${command.name} ${commandArgsText(args)}`;
    const suffix = '# ' + command.description.toLowerCase();
    return formatWithGap(prefix, suffix, 40);
  }
+@@ -175,7 +178,7 @@ function isBooleanSchema(schema: zodType.ZodTypeAny): boolean {
+ export function generateHelpJSON() {
+   const booleanOptions = new Set<string>();
+ 
+-  const commandEntries: Record<string, { help: string, flags: Record<string, 'boolean' | 'string'>, args: string[], variadicArg?: boolean, raw?: boolean }> = {};
++  const commandEntries: Record<string, { help: string, session: 'required' | 'optional' | 'none', flags: Record<string, 'boolean' | 'string'>, args: string[], variadicArg?: boolean, raw?: boolean, fileOptions?: Record<string, 'input' | 'output'> }> = {};
+   for (const [name, command] of Object.entries(commands)) {
+     const flags: Record<string, 'boolean' | 'string'> = {};
+     if (command.options) {
+@@ -188,11 +191,13 @@ export function generateHelpJSON() {
+       }
+     }
+     const args = commandArgs(command);
+-    commandEntries[name] = { help: generateCommandHelp(command), flags, args: args.map(a => a.name) };
++    commandEntries[name] = { help: generateCommandHelp(command), session: command.session ?? 'required', flags, args: args.map(a => a.name) };
+     if (args.some(a => a.variadic))
+       commandEntries[name].variadicArg = true;
+     if (command.raw)
+       commandEntries[name].raw = true;
++    if (command.fileOptions)
++      commandEntries[name].fileOptions = command.fileOptions;
+   }
+ 
+   return {
 diff --git a/packages/playwright-core/src/tools/cli-daemon/program.ts b/packages/playwright-core/src/tools/cli-daemon/program.ts
 index e96685479..dc4dbd390 100644
 --- a/packages/playwright-core/src/tools/cli-daemon/program.ts
@@ -1060,10 +1618,19 @@ index 4bcea607c..df7f8885e 100644
  export type SkillName = typeof allSkills[number];
  export type SkillTarget = 'claude' | 'agents';
 diff --git a/utils/build/build.js b/utils/build/build.js
-index 68de8fbcf..dc961c704 100644
+index 68de8fbcf..834b61ffb 100644
 --- a/utils/build/build.js
 +++ b/utils/build/build.js
-@@ -692,6 +692,7 @@ steps.push(new EsbuildStep({
+@@ -655,6 +655,8 @@ steps.push(new EsbuildStep({
+ 
+     // CLI client tools, should be a separate bundle.
+     filePath('packages/playwright-core/src/tools/cli-client/*.ts'),
++    // The CLI client also imports this shared, standalone query validator.
++    filePath('packages/playwright-core/src/tools/backend/atml/findQuery.ts'),
+     filePath('packages/playwright-core/src/package.ts'),
+     filePath('packages/playwright-core/src/tools/utils/socketConnection.ts'),
+     filePath('packages/playwright-core/src/tools/utils/extension.ts'),
+@@ -692,6 +694,7 @@ steps.push(new EsbuildStep({
    external: [
      '../../api.json',
      './help.json',

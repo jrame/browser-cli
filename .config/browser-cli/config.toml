@@ -1,5 +1,5 @@
-# Optional navigation allowlist (restart the browser session after changing it).
-# Omit allowed_urls to allow all pages; [] blocks all HTTP(S) pages.
+# Navigation allowlist (restart the browser session after changing it).
+# Missing or empty allowed_urls blocks all pages except about:blank.
 # [navigation]
 # allowed_urls = ["https://example.com/**"]
 

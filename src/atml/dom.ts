@@ -6,7 +6,7 @@ export type DomOptions = {
 export type AtmlNode = {
   tag?: string; text?: string; attrs?: Record<string, string>; classes?: string[];
   kept?: boolean; actionable?: boolean; nativeRef?: string; documentId?: string; key?: number;
-  children?: AtmlNode[]; box?: number[]; block?: boolean; tooltip?: boolean; showTag?: boolean;
+  children?: AtmlNode[]; box?: number[]; block?: boolean; tooltip?: boolean; showTag?: boolean; noPointerBox?: boolean;
 };
 export type NativeRegistration = { ref: string; documentId: string; key: number };
 
@@ -19,13 +19,16 @@ export function extractAtmlDom(root: Element, options: DomOptions, register: (el
   // Filter the original names before shortening aria-* (as the historical
   // HTML extractor did), so bare label/expanded/etc. are not implicitly kept.
   const allowedAttrs = new Set('id name alt role type value data-testid placeholder for disabled checked onclick aria-label aria-labelledby aria-describedby aria-expanded aria-controls aria-haspopup aria-selected aria-current aria-orientation class'.split(' '));
-  const usefulRoles = new Set('button link navigation nav dialog alert tab tabpanel tablist menu menuitem menubar checkbox radio switch slider spinbutton textbox combobox searchbox option progressbar tree treeitem grid row cell columnheader rowheader toolbar tooltip banner main complementary contentinfo form search region status log marquee timer alertdialog figure img heading separator'.split(' '));
+  const rangeRoles = new Set('progressbar meter slider spinbutton'.split(' '));
+  const rangeAttrs = new Set('aria-valuenow aria-valuemin aria-valuemax aria-valuetext'.split(' '));
+  const usefulRoles = new Set('button link navigation nav dialog alert tab tabpanel tablist menu menuitem menubar checkbox radio switch slider spinbutton textbox combobox searchbox option progressbar meter tree treeitem grid row cell columnheader rowheader toolbar tooltip banner main complementary contentinfo form search region status log marquee timer alertdialog figure img heading separator'.split(' '));
+  // Keep an explicit progressbar role: the progress tag itself is flattened.
   const redundantRoles: Record<string, string> = {
     button: 'button', a: 'link', nav: 'navigation', input: 'textbox', select: 'combobox', option: 'option',
     textarea: 'textbox', table: 'grid', tr: 'row', td: 'cell', th: 'columnheader', form: 'form',
     main: 'main', header: 'banner', footer: 'contentinfo', aside: 'complementary', dialog: 'dialog',
     img: 'img', figure: 'figure', h1: 'heading', h2: 'heading', h3: 'heading', h4: 'heading',
-    h5: 'heading', h6: 'heading', hr: 'separator', progress: 'progressbar',
+    h5: 'heading', h6: 'heading', hr: 'separator',
   };
   const interactiveListeners = new Set('click dblclick mousedown mouseup pointerdown pointerup touchstart touchend keydown keyup keypress input change submit focus blur'.split(' '));
   const interactiveRoles = new Set('button link tab menuitem menuitemcheckbox menuitemradio checkbox radio switch slider spinbutton textbox combobox searchbox option treeitem'.split(' '));
@@ -59,6 +62,7 @@ export function extractAtmlDom(root: Element, options: DomOptions, register: (el
     if (inlineStyle.includes('display: none') || inlineStyle.includes('display:none') ||
         inlineStyle.includes('visibility: hidden') || inlineStyle.includes('visibility:hidden')) return;
     const attrs: Record<string, string> = {};
+    const rangeControl = rangeRoles.has(element.getAttribute('role') || '');
     let tooltip = false;
     for (const attr of Array.from(element.attributes)) {
       // Python ATML represents tooltip presence, including empty attributes.
@@ -67,7 +71,10 @@ export function extractAtmlDom(root: Element, options: DomOptions, register: (el
         continue;
       }
       if (attr.name === 'data-has-listener' || attr.name === 'data-browser-atml-listeners') continue;
-      if (allowedAttrs.has(attr.name)) attrs[attr.name] = attr.name === 'onclick' ? '' : attr.value;
+      // Read the current DOM strings, including invalid values. Do not infer
+      // percentages, default bounds or a value for indeterminate progress.
+      if (allowedAttrs.has(attr.name) || (rangeControl && rangeAttrs.has(attr.name)))
+        attrs[attr.name] = attr.name === 'onclick' ? '' : attr.value;
     }
     // Shortening happens after all raw attributes have been collected: an
     // aria-label overrides a configured bare label regardless of DOM order.
@@ -113,6 +120,13 @@ export function extractAtmlDom(root: Element, options: DomOptions, register: (el
     const block = tag === 'br' || !/^(inline($|[- ])|contents$)/.test(style.display);
     const showTag = alwaysKeep.has(tag) || options.keep_tags.includes(tag);
     const result: AtmlNode = { tag, attrs, classes, kept, actionable, tooltip, block, showTag, children: [] };
+    // A reference identifies a target, not a promise of pointer actionability.
+    // Preserve zero-size keyboard inputs and report geometry separately from
+    // CSS visibility, focusability, hit testing and Playwright's live checks.
+    const keyboardInput = element.matches('input:not([type="hidden"]),textarea,[role="textbox"],[role="searchbox"]') ||
+      (element instanceof HTMLElement && element.isContentEditable);
+    if (keyboardInput && !Array.from(element.getClientRects()).some(rect => rect.width > 0 && rect.height > 0))
+      result.noPointerBox = true;
     if (kept) {
       const identity = register(element);
       result.nativeRef = identity.ref;

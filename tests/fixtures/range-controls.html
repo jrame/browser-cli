@@ -1,0 +1,48 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>ARIA range values</title>
+<div id="complete" role="progressbar" aria-label="Result" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"><svg><text>100%</text></svg></div>
+<div role="meter" aria-label="Fuel" aria-valuenow="2.5" aria-valuemin="-5" aria-valuemax="10.5" aria-valuetext="2.5 liters"></div>
+<div id="volume" role="slider" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100" aria-valuetext="Quiet"></div>
+<div id="quantity" role="spinbutton" aria-valuenow="3" aria-valuemin="1" aria-valuemax="9" aria-valuetext="3 items"></div>
+<div id="pending" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuetext="Loading"></div>
+<div role="progressbar"></div>
+<div id="unbounded" role="spinbutton" aria-valuenow="-1"></div>
+<div id="textual" role="slider" aria-valuetext="Unknown duration"></div>
+<div id="inconsistent" role="progressbar" aria-valuenow="150" aria-valuemin="100" aria-valuemax="0"></div>
+<div id="malformed" role="meter" aria-valuenow="unknown" aria-valuemin="" aria-valuemax="NaN" aria-valuetext="Unavailable"></div>
+<div id="zero" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="0"></div>
+<progress role="progressbar" value="0.5" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100"></progress>
+<div id="unrelated" role="status" aria-valuenow="999" aria-valuemin="-999" aria-valuemax="999" aria-valuetext="Unrelated value" aria-busy="true">Visible status</div>
+<div id="hidden" role="progressbar" aria-valuenow="888" hidden></div>
+<div id="excluded" class="filter-me" role="progressbar" aria-valuenow="7"></div>
+<div id="custom" role="progressbar" aria-valuenow="8" aria-description="Extra context" data-units="points"></div>
+<button id="update" onclick="updateValues()">Update</button>
+<button id="reset" onclick="resetProgress()">Reset</button>
+<script>
+  function updateValues() {
+    const result = document.querySelector('#complete');
+    result.setAttribute('data-previous-value', result.getAttribute('aria-valuenow'));
+    result.setAttribute('aria-valuenow', '37');
+    result.setAttribute('aria-valuemin', '10');
+    result.setAttribute('aria-valuemax', '90');
+    result.setAttribute('aria-valuetext', '37 of 90');
+    document.querySelector('[role=meter]').setAttribute('aria-valuenow', '6.25');
+    document.querySelector('[role=meter]').setAttribute('aria-valuetext', '6.25 liters');
+    const slider = document.querySelector('#volume');
+    slider.setAttribute('aria-valuenow', '60');
+    slider.setAttribute('aria-valuemax', '120');
+    slider.removeAttribute('aria-valuetext');
+    document.querySelector('#quantity').setAttribute('aria-valuenow', '4');
+    document.querySelector('#quantity').setAttribute('aria-valuetext', '4 items');
+    document.querySelector('#pending').setAttribute('aria-valuenow', '25');
+    document.querySelector('#pending').setAttribute('aria-valuetext', 'Quarter done');
+  }
+  function resetProgress() {
+    for (const id of ['complete', 'pending']) {
+      const progress = document.getElementById(id);
+      progress.removeAttribute('aria-valuenow');
+      progress.removeAttribute('aria-valuetext');
+    }
+  }
+</script>

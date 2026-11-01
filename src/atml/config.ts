@@ -10,7 +10,7 @@ export type AtmlOptions = {
   class_regex?: string;
 };
 export type AtmlRule = Partial<AtmlOptions> & { name: string; url: string; priority?: number };
-export type AtmlConfig = AtmlOptions & { rules: AtmlRule[]; allowed_urls?: string[] };
+export type AtmlConfig = AtmlOptions & { rules: AtmlRule[]; allowed_urls: string[] };
 const lists = ['keep_attrs', 'keep_tags', 'remove_selectors'] as const;
 
 export function normalizeMatchUrl(value: string): string {
@@ -60,7 +60,7 @@ export function parseAtmlConfig(source: string): AtmlConfig {
   const document = parse(source);
   const raw = (document.atml || {}) as Record<string, any>;
   const navigation = document.navigation as Record<string, any> | undefined;
-  let allowed_urls: string[] | undefined;
+  let allowed_urls: string[] = [];
   if (navigation !== undefined) {
     if (!navigation || typeof navigation !== 'object' || Array.isArray(navigation))
       throw new Error('navigation must be a table');
@@ -101,11 +101,12 @@ export function parseAtmlConfig(source: string): AtmlConfig {
     if (value.priority !== undefined && !Number.isInteger(value.priority)) throw new Error(`ATML rule ${name} priority must be an integer`);
     rules.push({ name, url: value.url.trim(), priority: value.priority || 0, ...options(value, `atml.rules.${name}`) });
   }
-  return { keep_attrs: [], keep_tags: [], remove_selectors: [], ...options(raw, 'atml'), rules, ...(allowed_urls === undefined ? {} : { allowed_urls }) };
+  return { keep_attrs: [], keep_tags: [], remove_selectors: [], ...options(raw, 'atml'), rules, allowed_urls };
 }
 
 export function navigationUrlAllowed(url: string, patterns: readonly string[] | undefined): boolean {
-  if (patterns === undefined || url === 'about:blank') return true;
+  if (url === 'about:blank') return true;
+  if (patterns === undefined) return false;
   try {
     const parsed = new URL(url);
     if (!['http:', 'https:'].includes(parsed.protocol)) return false;
@@ -115,7 +116,7 @@ export function navigationUrlAllowed(url: string, patterns: readonly string[] | 
   }
 }
 
-export function loadAtmlConfig(cwd: string, explicitPath?: string): AtmlConfig {
+export function loadAtmlConfig(cwd: string, explicitPath?: string): AtmlConfig & { configPath: string } {
   const requested = explicitPath || process.env.BROWSER_ATML_CONFIG;
   const candidates = requested ? [path.resolve(cwd, requested)] : [
     path.join(cwd, '.config', 'browser-cli', 'config.toml'),
@@ -123,5 +124,5 @@ export function loadAtmlConfig(cwd: string, explicitPath?: string): AtmlConfig {
   ];
   const file = candidates.find(candidate => fs.existsSync(candidate));
   if (!file && requested) throw new Error(`ATML configuration not found: ${candidates[0]}`);
-  return parseAtmlConfig(file ? fs.readFileSync(file, 'utf8') : '');
+  return { ...parseAtmlConfig(file ? fs.readFileSync(file, 'utf8') : ''), configPath: file || candidates[0] };
 }

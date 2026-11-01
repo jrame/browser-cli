@@ -18,7 +18,7 @@ import fs from 'fs';
 import path from 'path';
 import { spawn } from 'child_process';
 import { test, expect } from '@playwright/test';
-import { runCli as runBrowser } from './helpers';
+import { runCli as runBrowser, browserCacheDirectory } from './helpers';
 
 type CliResult = {
   output: string;
@@ -38,6 +38,10 @@ async function runCli(args: string[], env: Record<string, string> = {}): Promise
     const childProcess = spawn(process.execPath, [cliPath, ...args], {
       env: {
         ...process.env,
+        HOME: test.info().outputPath(),
+        USERPROFILE: test.info().outputPath(),
+        BROWSER_ATML_CONFIG: '',
+        PLAYWRIGHT_BROWSERS_PATH: browserCacheDirectory,
         PLAYWRIGHT_CLI_INSTALLATION_FOR_TEST: test.info().outputPath(),
         PWTEST_DAEMON_SESSION_DIR: test.info().outputPath('sessions'),
         PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1',
@@ -82,16 +86,60 @@ test('install creates the browser-cli config directory and ignores its logs', as
   expect(fs.readFileSync(path.join(cwd, '.gitignore'), 'utf8')).toBe('/.logs/\n');
 });
 
-test('open data URL', async ({}) => {
-  expect(await runCli(['open', 'data:text/html,hello', '--persistent', '--inline'])).toEqual(expect.objectContaining({
-    output: expect.stringContaining('hello'),
-    exitCode: 0,
+test('blank sessions remain usable but data URLs are denied without an allowlist', async ({}) => {
+  const blank = await runCli(['open', 'perso']);
+  expect(blank.exitCode, blank.error).toBe(0);
+  expect(blank.output).toContain('Browser `perso` opened');
+  expect((await runCli(['eval', 'perso', 'location.href', '--raw'])).output).toBe('"about:blank"');
+  expect((await runCli(['close', 'perso'])).exitCode).toBe(0);
+  expect(await runCli(['open', 'default', 'data:text/html,hello', '--persistent', '--inline'])).toEqual(expect.objectContaining({
+    output: expect.stringContaining('navigation.allowed_urls'),
+    exitCode: 1,
   }));
 
-  expect(await runCli(['delete-data'])).toEqual(expect.objectContaining({
+  expect(await runCli(['delete-data', 'default'])).toEqual(expect.objectContaining({
     output: expect.stringContaining('Deleted user data for'),
     exitCode: 0,
   }));
+});
+
+test('CLI requires a positional session and rejects all former session flags', async ({}) => {
+  for (const args of [['open'], ['snapshot'], ['close'], ['attach', '--cdp=chrome']]) {
+    const result = await runCli(args, { PLAYWRIGHT_CLI_SESSION: 'implicit' });
+    expect(result.exitCode).toBe(1);
+    expect(result.error).toContain('Missing session name');
+  }
+  for (const flags of [['-s=old'], ['-s', 'old'], ['--session=old'], ['--session', 'old']]) {
+    const result = await runCli([...flags, 'open']);
+    expect(result.exitCode).toBe(1);
+    expect(result.error).toContain('Session flags have been removed');
+  }
+  const close = await runCli(['close', 'perso'], { PLAYWRIGHT_CLI_SESSION: 'implicit' });
+  expect(close.exitCode).toBe(0);
+  expect(close.output).toContain("Browser 'perso' is not open.");
+  expect((await runCli(['list', '--json'])).output).not.toContain('implicit');
+  const help = await runCli(['open', '--help']);
+  expect(help.exitCode).toBe(0);
+  expect(help.output).toContain('browser open <session> [url]');
+  expect(help.output).not.toContain('-s=');
+});
+
+test('attach rejects remote targets that cannot enforce the default navigation policy', async ({}) => {
+  // The remote server must provide the same ATML injected engine as the CLI.
+  const { coreDirectory } = require('../scripts/runtime.cjs');
+  const { chromium } = require(coreDirectory());
+  const server = await chromium.launchServer({ headless: true });
+  try {
+    const attached = await runCli(['attach', 'perso', '--endpoint', server.wsEndpoint(), '--inline']);
+    expect(attached.exitCode, attached.error || attached.output).toBe(1);
+    expect(attached.output + attached.error).toContain('navigation.allowed_urls requires a local browser connection');
+    const browser = await chromium.connect(server.wsEndpoint());
+    expect(browser.isConnected()).toBe(true);
+    await browser.close();
+  } finally {
+    await runCli(['close-all']);
+    await server.close();
+  }
 });
 
 test('warns when installed skill is out of date', async ({}) => {
